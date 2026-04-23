@@ -1,0 +1,86 @@
+<p class="lead">
+"四大子空间"是 Gilbert Strang 对线代的经典总结 —— 任何矩阵 $A$ 都切分出四个子空间,
+它们从不同角度描述了神经网络层的表达能力。
+</p>
+
+<h2>向量空间:封闭性两条</h2>
+
+<p>一个集合 $V$ 是<b>向量空间</b>,当:</p>
+<ol>
+  <li><b>加法封闭</b>:$\mathbf{u}, \mathbf{v} \in V \Rightarrow \mathbf{u}+\mathbf{v} \in V$</li>
+  <li><b>数乘封闭</b>:$\mathbf{v} \in V, k \in \mathbb{R} \Rightarrow k\mathbf{v} \in V$</li>
+</ol>
+
+<p>熟悉的例子:$\mathbb{R}^2$、$\mathbb{R}^3$、$\mathbb{R}^n$。<b>过原点的平面</b>也是 —— 但不过原点的平面不是(违反数乘封闭:$0 \cdot \mathbf{v} = \mathbf{0}$ 得在集合里)。</p>
+
+<h2>基与维度</h2>
+
+<ul>
+  <li><b>线性无关</b>:一组向量,谁都不能被其他几个的线性组合表示</li>
+  <li><b>生成(span)</b>:一组向量的所有线性组合构成的集合</li>
+  <li><b>基(basis)</b>:<b>线性无关</b>且<b>生成整个空间</b>的一组向量</li>
+  <li><b>维度</b>:基中向量的个数(和基的具体选择无关)</li>
+</ul>
+
+<p>标准基 $\mathbf{e}_1 = (1,0), \mathbf{e}_2 = (0,1)$ 是 $\mathbb{R}^2$ 最熟悉的基。但 $\{(1,2), (3,1)\}$ 也是一组合法的基。同一个向量在不同基下<b>坐标不同</b>。</p>
+
+<h2>任意矩阵的四大子空间</h2>
+
+<p>对 $A \in \mathbb{R}^{m\times n}$,定义四个子空间:</p>
+
+<table class="cmp-table">
+<tr><th>子空间</th><th>定义</th><th>维度</th><th>在哪里</th></tr>
+<tr><td><b>列空间 $\mathcal{C}(A)$</b></td><td>所有 $A\mathbf{x}$ 的集合 = $A$ 各列的生成</td><td>$r$</td><td>$\mathbb{R}^m$</td></tr>
+<tr><td><b>零空间 $\mathcal{N}(A)$</b></td><td>所有满足 $A\mathbf{x}=\mathbf{0}$ 的 $\mathbf{x}$</td><td>$n - r$</td><td>$\mathbb{R}^n$</td></tr>
+<tr><td><b>行空间 $\mathcal{C}(A^T)$</b></td><td>$A$ 各行的生成</td><td>$r$</td><td>$\mathbb{R}^n$</td></tr>
+<tr><td><b>左零空间 $\mathcal{N}(A^T)$</b></td><td>所有满足 $A^T\mathbf{y}=\mathbf{0}$ 的 $\mathbf{y}$</td><td>$m - r$</td><td>$\mathbb{R}^m$</td></tr>
+</table>
+
+<p>其中 $r = \text{rank}(A)$。<b>重要事实</b>:</p>
+<ul>
+  <li>列空间 $\perp$ 左零空间(都在 $\mathbb{R}^m$ 中,正交互补)</li>
+  <li>行空间 $\perp$ 零空间(都在 $\mathbb{R}^n$ 中,正交互补)</li>
+  <li>行秩 = 列秩 = $r$</li>
+</ul>
+
+<h2>在神经网络里的意义</h2>
+
+<div class="callout c-info">
+  <span class="callout-title">层的表达能力</span>
+  一层 $\mathbf{y} = W\mathbf{x}$ 的<b>所有可能输出</b>构成 $W$ 的<b>列空间</b>。
+  如果列空间维度小(比如 $W$ 降秩),就意味着有些输出方向这一层<b>永远到不了</b> —— 容量受限。
+</div>
+
+<h3>过参数化:现代 DL 的常态</h3>
+
+<p>
+神经网络的参数数量往往远超训练数据。这时存在<b>无穷多组参数</b>都能完美拟合训练数据 ——
+这是个零空间问题。深度学习选哪一组?实验表明<b>SGD 隐式地选择"简单的"解</b>(某种范数最小),这是当前理论研究的热点。
+</p>
+
+<h2>线性相关与相关性(日常语境)的关系</h2>
+
+<p>
+在机器学习的语境里,<b>"特征冗余"</b>就对应"线性相关":如果 "身高(cm)" 和 "身高(m)" 同时作为特征,这两列严格线性相关,信息重复,会让模型求解不稳定。PCA 就是在找"去相关后的主方向"。
+</p>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['11-vector-spaces'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('$\\{(1,0),(2,0)\\}$ 在 $\\mathbb{R}^2$ 中:',
+         ['线性无关', '线性相关', '构成基', '维度 2'], 1, '$(2,0) = 2\\times(1,0)$,冗余') +
+    quiz('$\\mathbb{R}^3$ 空间基必须含多少个向量?',
+         ['2', '3', '4', '任意'], 1, '维度 = 基的向量数') +
+    quiz('$A\\in\\mathbb{R}^{3\\times 5}$ 的零空间在哪个空间里?',
+         ['$\\mathbb{R}^3$', '$\\mathbb{R}^5$', '$\\mathbb{R}^8$', '$\\mathbb{R}^{15}$'], 1, '$\\mathbf{x}$ 是 5 维') +
+    quiz('矩阵的行秩和列秩?',
+         ['行秩更大', '列秩更大', '永远相等', '通常不相等'], 2, '著名的 rank 定理:行秩 = 列秩') +
+    quiz('神经网络层 $\\mathbf{y}=W\\mathbf{x}$ 的所有可能 $\\mathbf{y}$ 构成:',
+         ['零空间', '列空间', '行空间', '左零空间'], 1);
+  typeset(qs);
+};
+</script>

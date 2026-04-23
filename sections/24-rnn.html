@@ -1,0 +1,239 @@
+<p class="lead">
+图像是固定大小,但<b>句子、音频、股价</b>是序列,长度可变。RNN 为此而生。
+核心想法:有一个<b>隐藏状态 $h$</b>,像"大脑的记忆",每读一个新输入就更新一次,并参与下一步计算。
+</p>
+
+<h2>核心公式</h2>
+
+<div class="math-scroll">
+$$h_t = \tanh(W_{xh}\,x_t + W_{hh}\,h_{t-1} + b_h)$$
+$$y_t = W_{hy}\,h_t + b_y$$
+</div>
+
+<p>
+注意:三个权重 $W_{xh}, W_{hh}, W_{hy}$ 在<b>每个时间步都是同一个</b>(参数共享),这是 RNN 能处理<b>可变长度序列</b>的关键。
+</p>
+
+<h2>视图一:沿时间展开的总览</h2>
+
+<p>把 RNN 在时间轴上"展开",它看起来就像一个<b>很深的前馈网络</b>,每一层共享同一套参数:</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 240" class="svg-root" style="max-width:100%">
+      <!-- 4 个时间步 -->
+      <g>
+        <!-- 初始 h_0 -->
+        <circle cx="40" cy="120" r="24" fill="var(--bg-soft)" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <text x="40" y="124" text-anchor="middle" class="label" font-weight="600">h₀</text>
+      </g>
+      <g>
+        <!-- t=1:我 -->
+        <rect x="110" y="185" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="135" y="208" text-anchor="middle" class="label" font-weight="700">我</text>
+        <text x="135" y="235" text-anchor="middle" class="label-sm" fill="var(--ink-3)">x₁</text>
+        <circle cx="135" cy="120" r="24" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="135" y="124" text-anchor="middle" class="label" font-weight="700">h₁</text>
+        <rect x="117" y="50" width="36" height="32" rx="4" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="135" y="70" text-anchor="middle" class="label">y₁</text>
+      </g>
+      <g>
+        <rect x="250" y="185" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="275" y="208" text-anchor="middle" class="label" font-weight="700">爱</text>
+        <text x="275" y="235" text-anchor="middle" class="label-sm" fill="var(--ink-3)">x₂</text>
+        <circle cx="275" cy="120" r="24" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="275" y="124" text-anchor="middle" class="label" font-weight="700">h₂</text>
+        <rect x="257" y="50" width="36" height="32" rx="4" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="275" y="70" text-anchor="middle" class="label">y₂</text>
+      </g>
+      <g>
+        <rect x="390" y="185" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="415" y="208" text-anchor="middle" class="label" font-weight="700">北</text>
+        <text x="415" y="235" text-anchor="middle" class="label-sm" fill="var(--ink-3)">x₃</text>
+        <circle cx="415" cy="120" r="24" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="415" y="124" text-anchor="middle" class="label" font-weight="700">h₃</text>
+        <rect x="397" y="50" width="36" height="32" rx="4" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="415" y="70" text-anchor="middle" class="label">y₃</text>
+      </g>
+      <g>
+        <rect x="530" y="185" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="555" y="208" text-anchor="middle" class="label" font-weight="700">京</text>
+        <text x="555" y="235" text-anchor="middle" class="label-sm" fill="var(--ink-3)">x₄</text>
+        <circle cx="555" cy="120" r="24" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+        <text x="555" y="124" text-anchor="middle" class="label" font-weight="700">h₄</text>
+        <rect x="537" y="50" width="36" height="32" rx="4" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="555" y="70" text-anchor="middle" class="label">y₄</text>
+      </g>
+      <!-- 连线 -->
+      <g stroke="var(--blue)" stroke-width="2" fill="none">
+        <path d="M 64 120 L 111 120" marker-end="url(#arrH)"/>
+        <path d="M 159 120 L 251 120" marker-end="url(#arrH)"/>
+        <path d="M 299 120 L 391 120" marker-end="url(#arrH)"/>
+        <path d="M 439 120 L 531 120" marker-end="url(#arrH)"/>
+      </g>
+      <!-- x → h -->
+      <g stroke="var(--orange)" stroke-width="1.5" fill="none">
+        <path d="M 135 185 L 135 144" marker-end="url(#arrO)"/>
+        <path d="M 275 185 L 275 144" marker-end="url(#arrO)"/>
+        <path d="M 415 185 L 415 144" marker-end="url(#arrO)"/>
+        <path d="M 555 185 L 555 144" marker-end="url(#arrO)"/>
+      </g>
+      <!-- h → y -->
+      <g stroke="var(--green)" stroke-width="1.5" fill="none">
+        <path d="M 135 96 L 135 82" marker-end="url(#arrG)"/>
+        <path d="M 275 96 L 275 82" marker-end="url(#arrG)"/>
+        <path d="M 415 96 L 415 82" marker-end="url(#arrG)"/>
+        <path d="M 555 96 L 555 82" marker-end="url(#arrG)"/>
+      </g>
+      <!-- W 标记 -->
+      <text x="88" y="115" class="label-sm" fill="var(--blue-deep)" font-style="italic">W_hh</text>
+      <text x="207" y="115" class="label-sm" fill="var(--blue-deep)" font-style="italic">W_hh</text>
+      <text x="347" y="115" class="label-sm" fill="var(--blue-deep)" font-style="italic">W_hh</text>
+      <text x="487" y="115" class="label-sm" fill="var(--blue-deep)" font-style="italic">W_hh</text>
+      <text x="140" y="168" class="label-sm" fill="var(--orange-deep)" font-style="italic">W_xh</text>
+      <text x="140" y="90" class="label-sm" fill="var(--green)" font-style="italic">W_hy</text>
+      <text x="640" y="200" class="label-sm" fill="var(--ink-3)">时间 →</text>
+      <defs>
+        <marker id="arrH" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--blue)"/></marker>
+        <marker id="arrO" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--orange)"/></marker>
+        <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--green)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 5.1.1</span> RNN 沿时间展开 · 输入"我爱北京"四个字,4 个时间步共享同一套 $W_{xh}, W_{hh}, W_{hy}$。
+  </div>
+</div>
+
+<h2>视图二:单个时间步的内部结构</h2>
+
+<p>把注意力放到<b>一个时间步内部</b>,看数据是如何流动的:</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 600 280" class="svg-root" style="max-width:100%">
+      <!-- 输入 x_t -->
+      <rect x="40" y="220" width="70" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+      <text x="75" y="243" text-anchor="middle" class="label" font-weight="700">x_t</text>
+      <!-- 上一时刻 h_{t-1} -->
+      <circle cx="75" cy="60" r="28" fill="var(--bg-soft)" stroke="var(--ink-3)" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="75" y="64" text-anchor="middle" class="label" font-weight="700">h_{t-1}</text>
+      <!-- W_xh -->
+      <rect x="180" y="190" width="110" height="36" rx="6" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.5"/>
+      <text x="235" y="214" text-anchor="middle" class="label" font-weight="600">× W_xh</text>
+      <!-- W_hh -->
+      <rect x="180" y="42" width="110" height="36" rx="6" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.5"/>
+      <text x="235" y="66" text-anchor="middle" class="label" font-weight="600">× W_hh</text>
+      <!-- 相加 -->
+      <circle cx="370" cy="140" r="22" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="370" y="148" text-anchor="middle" font-size="22" font-weight="700" fill="var(--yellow)">+</text>
+      <text x="375" y="178" class="label-sm" fill="var(--ink-3)">+ bias b_h</text>
+      <!-- tanh -->
+      <rect x="430" y="122" width="80" height="36" rx="6" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+      <text x="470" y="146" text-anchor="middle" class="label" font-weight="700">tanh</text>
+      <!-- h_t -->
+      <circle cx="570" cy="140" r="28" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2.5"/>
+      <text x="570" y="144" text-anchor="middle" class="label" font-weight="700">h_t</text>
+      <!-- arrows -->
+      <g stroke="var(--ink-3)" stroke-width="1.3" fill="none">
+        <path d="M 110 238 L 177 208" marker-end="url(#arrR51)"/>
+        <path d="M 103 60 L 177 60" marker-end="url(#arrR51)"/>
+        <path d="M 293 208 L 345 148" marker-end="url(#arrR51)"/>
+        <path d="M 293 60 L 345 132" marker-end="url(#arrR51)"/>
+        <path d="M 393 140 L 426 140" marker-end="url(#arrR51)"/>
+        <path d="M 513 140 L 540 140" marker-end="url(#arrR51)"/>
+      </g>
+      <!-- 到下一时刻 h -->
+      <path d="M 598 140 L 620 140 L 620 30 L 75 30 L 75 30" stroke="var(--blue)" stroke-width="1.5" fill="none" stroke-dasharray="4,3"/>
+      <text x="450" y="20" class="label-sm" fill="var(--blue-deep)" font-style="italic">传给下一时间步</text>
+      <defs><marker id="arrR51" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 5.1.2</span> 单时间步内部:$x_t$ 和 $h_{t-1}$ 各乘一个权重矩阵 → 相加 → tanh → 得到新的 $h_t$。
+  </div>
+</div>
+
+<h2>三种使用配置</h2>
+
+<table class="cmp-table">
+<tr><th>类型</th><th>输入→输出</th><th>典型例子</th></tr>
+<tr><td><b>一对多</b></td><td>一个 → 序列</td><td>看图写文(image captioning)</td></tr>
+<tr><td><b>多对一</b></td><td>序列 → 一个</td><td>情感分析、文本分类</td></tr>
+<tr><td><b>多对多(同步)</b></td><td>序列 → 等长序列</td><td>词性标注</td></tr>
+<tr><td><b>多对多(不同步)</b></td><td>序列 → 不等长</td><td>机器翻译(Seq2Seq,Encoder-Decoder)</td></tr>
+</table>
+
+<h2>双向 RNN(BiRNN)</h2>
+
+<p>
+普通 RNN 只看过去。对某些任务(如命名实体识别),未来上下文同样重要。<b>双向 RNN</b> 同时跑一个正向 RNN 和一个反向 RNN,把两个方向的隐藏状态拼接:
+</p>
+
+<div class="math-scroll">
+$$h_t = [\overrightarrow{h}_t;\; \overleftarrow{h}_t]$$
+</div>
+
+<h2>Teacher Forcing — 训练 Seq2Seq 的技巧</h2>
+
+<p>
+训练翻译模型时,解码器应该把自己的上一步输出喂给下一步。但初期模型预测很差,错误会<b>级联放大</b>。
+解决:训练时<b>直接把真实的 $y_{t-1}$ 喂进去</b>(不管当前预测是啥),叫 Teacher Forcing。推理时才真正用自己的预测。
+</p>
+
+<h2>⚠️ 梯度消失 / 爆炸</h2>
+
+<p>RNN 展开后相当于很深的网络。反向传播时,梯度要<b>连乘 $W_{hh}$</b> 很多次:</p>
+
+<div class="math-scroll">
+$$\frac{\partial L}{\partial h_1} \propto \prod_{t=1}^{T} W_{hh}^T \cdot \text{diag}(\tanh'(\cdot))$$
+</div>
+
+<ul>
+  <li>若 $\|W_{hh}\| < 1$ → 梯度<b>指数级衰减</b>(消失) → 早期输入无法影响后期</li>
+  <li>若 $\|W_{hh}\| > 1$ → 梯度<b>指数级增长</b>(爆炸) → 训练发散</li>
+</ul>
+
+<p>朴素 RNN 一般只能记住 <b>10-20 步</b> 的信息。要记更久?<b>LSTM / GRU</b> 登场。</p>
+
+<h2>PyTorch 代码</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch.nn as nn
+
+class SimpleRNN(nn.Module):
+    def __init__(self, vocab_size, hidden_size):
+        super().__init__()
+        self.embed = nn.Embedding(vocab_size, 64)
+        self.rnn   = nn.RNN(input_size=64, hidden_size=hidden_size, batch_first=True)
+        self.fc    = nn.Linear(hidden_size, vocab_size)
+
+    def forward(self, x):
+        emb = self.embed(x)              # (B, T, 64)
+        out, h = self.rnn(emb)           # out: (B, T, H)
+        return self.fc(out)              # (B, T, vocab)
+
+# 梯度爆炸时的标准救急手段 —— 梯度裁剪
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['24-rnn'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('RNN 和全连接网络最本质的区别?',
+         ['更深', '有循环 / 状态 / 参数共享', '更宽', '用 Sigmoid'], 1) +
+    quiz('RNN 处理长序列的最大问题?',
+         ['参数太多', '梯度消失 / 爆炸', '速度慢', '只能看图'], 1) +
+    quiz('BiLSTM 相比 LSTM 多了什么?',
+         ['更多门', '反向的隐藏状态', '更多层', '残差连接'], 1) +
+    quiz('Teacher Forcing 是?',
+         ['一种激活', '训练时强制喂真实 y_{t-1}', '一种优化器', '数据增强'], 1) +
+    quiz('梯度爆炸的救急方法?',
+         ['减小 batch', '梯度裁剪', '加 Dropout', '换损失'], 1);
+  typeset(qs);
+};
+</script>

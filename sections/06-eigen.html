@@ -1,0 +1,228 @@
+<p class="lead">
+特征值是线性代数里最"有灵魂"的概念 —— 它揭示了矩阵变换的<b>不变方向</b>。
+一旦你理解了它,PCA、SVD、PageRank、RNN 稳定性分析...
+这些看似无关的东西会突然都能串起来。
+</p>
+
+<h2>核心定义</h2>
+
+<div class="math-scroll">
+$$A\mathbf{v} = \lambda\mathbf{v}, \qquad \mathbf{v} \neq \mathbf{0}$$
+</div>
+
+<div class="callout">
+  <span class="callout-title">直觉</span>
+  矩阵 $A$ 作用在一般向量 $\mathbf{x}$ 上会<b>既拉伸又旋转</b>。
+  但对某些<b>特殊方向</b>的向量 $\mathbf{v}$,$A$ 只<b>沿原方向拉伸</b>,不旋转 ——
+  拉伸倍数就是特征值 $\lambda$。
+  <br><br>
+  这些"不变方向"叫<b>特征向量</b>,倍数叫<b>特征值</b>。
+</div>
+
+<h2>求解流程</h2>
+
+<p>由 $A\mathbf{v}=\lambda\mathbf{v}$ 得 $(A-\lambda I)\mathbf{v}=\mathbf{0}$。要有非零解,必须 $\det(A-\lambda I)=0$:</p>
+
+<div class="math-scroll">
+$$\det(A - \lambda I) = 0 \quad \text{(特征方程)}$$
+</div>
+
+<p>这是 $\lambda$ 的 $n$ 次方程。对 2×2 矩阵:</p>
+
+<div class="math-scroll">
+$$\det\begin{bmatrix}a-\lambda & b\\c & d-\lambda\end{bmatrix} = \lambda^2 - (a+d)\lambda + (ad-bc) = 0$$
+</div>
+
+<p>即 $\lambda^2 - \text{tr}(A)\lambda + \det(A) = 0$ —— <b>迹和行列式的含义又出现了</b>!</p>
+
+<h2>交互式完整推导</h2>
+
+<div class="figure">
+  <div class="figure-body">
+    <div class="controls">
+      <div class="mgrid" style="grid-template-columns: repeat(2, auto)">
+        <input type="number" value="4" id="e00">
+        <input type="number" value="2" id="e01">
+        <input type="number" value="1" id="e10">
+        <input type="number" value="3" id="e11">
+      </div>
+      <button class="btn btn-primary" id="eig-step">▶ 下一步</button>
+      <button class="btn" id="eig-reset">重置</button>
+      <span id="eig-cnt" style="font-size:13px; color: var(--ink-2);"></span>
+    </div>
+    <div id="eig-out"></div>
+    <canvas id="c-eig" width="400" height="400" style="max-width:100%; display:block; margin: 16px auto 0; background:var(--bg); border-radius:8px;"></canvas>
+  </div>
+  <div class="figure-caption">
+    <span class="num">互动 1.6</span> 实线 = 特征向量;虚线 = $A\mathbf{v}$。<b>它们同方向!</b>只是长度被 $\lambda$ 倍。
+  </div>
+</div>
+
+<h2>对角化 — 特征值真正的用法</h2>
+
+<p>如果 $A$ 有 $n$ 个线性无关的特征向量,设它们组成矩阵 $P$,对应特征值组成对角阵 $D$,则:</p>
+
+<div class="math-scroll">
+$$A = P D P^{-1}$$
+</div>
+
+<p>
+这叫<b>对角化</b>。几何意义:在合适的基下看,$A$ 就是<b>每个方向独立拉伸</b>。
+更强大的是,对角化让矩阵的幂指数变得几乎免费:
+</p>
+
+<div class="math-scroll">
+$$A^k = P D^k P^{-1}, \qquad D^k = \text{diag}(\lambda_1^k, \lambda_2^k, \dots, \lambda_n^k)$$
+</div>
+
+<p>算 $A^{100}$ 不再需要做 100 次矩阵乘法 —— 只要把每个 $\lambda_i$ 100 次方再组回去。</p>
+
+<h2>谱定理 — 对称矩阵的漂亮性质</h2>
+
+<div class="callout c-info">
+  <span class="callout-title">谱定理 (Spectral Theorem)</span>
+  如果 $A$ 是<b>实对称矩阵</b>($A = A^T$),那么:
+  <ul>
+    <li>$A$ 的所有特征值都是<b>实数</b></li>
+    <li>不同特征值对应的特征向量<b>相互正交</b></li>
+    <li>$A$ 可以<b>正交对角化</b>:$A = Q D Q^T$,其中 $Q$ 是正交矩阵</li>
+  </ul>
+</div>
+
+<p>
+协方差矩阵、Hessian、Gram 矩阵 $A^T A$ 都是对称的 —— 这就是 PCA、二次优化、SVD 能"正交分解"的数学根源。
+</p>
+
+<h2>特殊情形</h2>
+
+<table class="cmp-table">
+<tr><th>情况</th><th>例子</th><th>含义</th></tr>
+<tr><td>实特征值 > 1</td><td>放大器</td><td>沿该方向越来越远</td></tr>
+<tr><td>实特征值 ∈ (0,1)</td><td>压缩器</td><td>沿该方向越来越近原点</td></tr>
+<tr><td>特征值 = 0</td><td>投影</td><td>该方向被压扁,矩阵奇异</td></tr>
+<tr><td>特征值 < 0</td><td>反射 + 拉伸</td><td>方向反转</td></tr>
+<tr><td>复特征值</td><td>旋转矩阵</td><td>几何上是<b>旋转</b>,没有实的不变方向</td></tr>
+</table>
+
+<h2>应用纵览</h2>
+
+<ul>
+  <li><b>PCA</b>:数据协方差矩阵的特征向量 = 数据方差最大的方向(第 1.8 节)</li>
+  <li><b>PageRank</b>:Google 搜索排名 = 网页链接矩阵的主特征向量(对应最大特征值)</li>
+  <li><b>RNN 稳定性</b>:权重矩阵 $W_{hh}$ 的最大特征值决定梯度消失/爆炸(第 5.1 节)</li>
+  <li><b>优化</b>:Hessian 的特征值决定局部地形(最小值/鞍点/最大值)</li>
+</ul>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['06-eigen'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('$A = \\begin{pmatrix}2&0\\\\0&3\\end{pmatrix}$ 的特征值?',
+         ['2 和 3', '0 和 1', '5', '6'], 0, '对角阵的特征值就是对角线元素') +
+    quiz('对称矩阵的特征向量有什么性质?',
+         ['互相平行', '互相正交', '大小相等', '都是零向量'], 1, '谱定理:实对称矩阵不同特征值对应的特征向量正交') +
+    quiz('$\\text{tr}(A) = \\lambda_1 + \\lambda_2$ 这个关系:',
+         ['只对对角阵成立', '对任意方阵成立', '只对对称矩阵成立', '错误'], 1, '迹永远等于特征值之和,det 永远等于特征值之积') +
+    quiz('对角化 $A = PDP^{-1}$ 最大的用途是:',
+         ['装饰', '好看', '算 $A^k$ 非常快', '可以画图'], 2, '$A^k = PD^kP^{-1}$,算矩阵高次幂变成对每个特征值求幂');
+  typeset(qs);
+
+  let steps = [], pos = 0, curEig = null;
+
+  function buildSteps() {
+    const a = +$('#e00', root).value, b = +$('#e01', root).value;
+    const c = +$('#e10', root).value, d = +$('#e11', root).value;
+    const tr = a + d, det = a*d - b*c;
+    const disc = tr*tr - 4*det;
+    steps = [];
+    steps.push(`<div class="step fwd"><span class="step-num">1</span>
+      写出特征方程:$\\det(A - \\lambda I) = \\lambda^2 - ${tr}\\lambda + ${det} = 0$</div>`);
+    if (disc < 0) {
+      steps.push(`<div class="step bwd"><span class="step-num">2</span>
+        判别式 $\\Delta = ${disc} < 0$ → <b>复特征值</b>(这个矩阵在几何上是旋转)</div>`);
+      curEig = null;
+      return;
+    }
+    const sq = Math.sqrt(disc);
+    const l1 = (tr + sq)/2, l2 = (tr - sq)/2;
+    steps.push(`<div class="step done"><span class="step-num">2</span>
+      由公式:$\\lambda_1 = ${l1.toFixed(3)}, \\lambda_2 = ${l2.toFixed(3)}$</div>`);
+    steps.push(`<div class="step fwd"><span class="step-num">3</span>
+      代入 $\\lambda_1$ 求 $\\mathbf{v}_1$:$(${(a-l1).toFixed(3)})v_1 + ${b}v_2 = 0$</div>`);
+    let v1, v2;
+    if (Math.abs(a - l1) > 1e-8) v1 = [-b/(a-l1), 1]; else v1 = [1, 0];
+    if (Math.abs(a - l2) > 1e-8) v2 = [-b/(a-l2), 1]; else v2 = [0, 1];
+    const n1 = Math.sqrt(v1[0]**2+v1[1]**2) || 1;
+    const n2 = Math.sqrt(v2[0]**2+v2[1]**2) || 1;
+    v1 = [v1[0]/n1, v1[1]/n1];
+    v2 = [v2[0]/n2, v2[1]/n2];
+    steps.push(`<div class="step done"><span class="step-num">4</span>
+      归一化:$\\mathbf{v}_1 = (${v1[0].toFixed(3)}, ${v1[1].toFixed(3)})$,
+      $\\mathbf{v}_2 = (${v2[0].toFixed(3)}, ${v2[1].toFixed(3)})$</div>`);
+    steps.push(`<div class="step done"><span class="step-num">5</span>
+      验证:$A\\mathbf{v}_1 = ${l1.toFixed(3)}\\mathbf{v}_1$ ✓ ,
+      $A\\mathbf{v}_2 = ${l2.toFixed(3)}\\mathbf{v}_2$ ✓</div>`);
+    curEig = { l1, l2, v1, v2, a, b, c, d };
+  }
+
+  function render() {
+    const out = $('#eig-out', root);
+    out.innerHTML = steps.slice(0, pos+1).join('');
+    $('#eig-cnt', root).textContent = `${pos+1} / ${steps.length}`;
+    typeset(out);
+    drawEig();
+  }
+
+  function drawEig() {
+    const canv = $('#c-eig', root);
+    if (!canv || !curEig) {
+      if (canv) canv.getContext('2d').clearRect(0,0,canv.width,canv.height);
+      return;
+    }
+    const ctx = canv.getContext('2d');
+    const W = canv.width, H = canv.height, CX = W/2, CY = H/2, S = 50;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#FBF8F3'; ctx.fillRect(0,0,W,H);
+    // 网格
+    ctx.strokeStyle = '#E2D8C4'; ctx.lineWidth = 0.5;
+    for (let x = CX % S; x < W; x += S) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = CY % S; y < H; y += S) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    ctx.strokeStyle = '#8B7A65'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0,CY); ctx.lineTo(W,CY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(CX,0); ctx.lineTo(CX,H); ctx.stroke();
+
+    const v = curEig;
+    const drawVec = (vx, vy, col, label, dashed) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 3;
+      ctx.setLineDash(dashed ? [6,4] : []);
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.lineTo(CX + vx*S*1.5, CY - vy*S*1.5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = col;
+      ctx.font = 'bold 13px Lora';
+      ctx.fillText(label, CX + vx*S*1.5 + 6, CY - vy*S*1.5 - 4);
+    };
+    drawVec(v.v1[0], v.v1[1], '#D97333', 'v₁', false);
+    drawVec(v.v2[0], v.v2[1], '#2D63A4', 'v₂', false);
+    // Av
+    const Av1 = [v.a*v.v1[0] + v.b*v.v1[1], v.c*v.v1[0] + v.d*v.v1[1]];
+    const Av2 = [v.a*v.v2[0] + v.b*v.v2[1], v.c*v.v2[0] + v.d*v.v2[1]];
+    drawVec(Av1[0], Av1[1], '#D97333', 'Av₁', true);
+    drawVec(Av2[0], Av2[1], '#2D63A4', 'Av₂', true);
+  }
+
+  function reset() { buildSteps(); pos = 0; render(); }
+  function step() { if (pos < steps.length - 1) pos++; render(); }
+
+  $('#eig-step', root).addEventListener('click', step);
+  $('#eig-reset', root).addEventListener('click', reset);
+  ['e00','e01','e10','e11'].forEach(id => $('#'+id, root).addEventListener('input', reset));
+
+  reset();
+};
+</script>

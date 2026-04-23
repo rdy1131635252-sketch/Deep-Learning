@@ -1,0 +1,203 @@
+<p class="lead">
+Transformer = 多个注意力层 + 前馈层堆起来。它取代 RNN 成为 NLP 默认骨架,后来扩散到 CV、语音、生物 ——
+催生了 ChatGPT、Stable Diffusion、AlphaFold。这一节解剖它的每一块。
+</p>
+
+<h2>整体架构</h2>
+
+<p>原始 Transformer (Vaswani 2017) 是 <b>Encoder-Decoder</b> 结构,用于翻译。后来分化成三种范式:</p>
+
+<table class="cmp-table">
+<tr><th>类型</th><th>组成</th><th>代表模型</th><th>典型任务</th></tr>
+<tr><td><b>Encoder-only</b></td><td>只用编码器</td><td>BERT, RoBERTa, ViT</td><td>分类、嵌入、理解</td></tr>
+<tr><td><b>Decoder-only</b></td><td>只用解码器(因果掩码)</td><td>GPT, LLaMA, Claude</td><td>生成、对话</td></tr>
+<tr><td><b>Encoder-Decoder</b></td><td>都有</td><td>T5, BART, 原 Transformer</td><td>翻译、摘要</td></tr>
+</table>
+
+<h2>Transformer Block(Pre-LN 现代版)</h2>
+
+<p>现代 Transformer(GPT-2 之后)采用 <b>Pre-LN</b> 设计 —— LayerNorm 在残差<b>前</b>(更稳定):</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 540 460" class="svg-root" style="max-width:100%">
+      <!-- 输入 -->
+      <rect x="190" y="10" width="160" height="34" rx="6" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+      <text x="270" y="32" text-anchor="middle" class="label" font-weight="700">输入 x</text>
+
+      <!-- 第一个块:LN + Attn + 残差 -->
+      <rect x="180" y="80" width="180" height="30" rx="5" fill="#fff" stroke="var(--ink-3)"/>
+      <text x="270" y="100" text-anchor="middle" class="label">LayerNorm</text>
+
+      <rect x="160" y="130" width="220" height="50" rx="6" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+      <text x="270" y="153" text-anchor="middle" class="label" font-weight="700">Multi-Head Self-Attention</text>
+      <text x="270" y="170" text-anchor="middle" class="label-sm">(GPT 加因果掩码)</text>
+
+      <!-- 残差 + -->
+      <circle cx="270" cy="210" r="16" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+      <text x="270" y="216" text-anchor="middle" font-size="20" font-weight="700" fill="var(--orange)">+</text>
+      <!-- 跳跃 -->
+      <path d="M 130 27 L 130 210 L 254 210" stroke="var(--red)" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrTR)"/>
+
+      <!-- LN + FFN + 残差 -->
+      <rect x="180" y="250" width="180" height="30" rx="5" fill="#fff" stroke="var(--ink-3)"/>
+      <text x="270" y="270" text-anchor="middle" class="label">LayerNorm</text>
+
+      <rect x="160" y="300" width="220" height="50" rx="6" fill="var(--green-tint)" stroke="var(--green)" stroke-width="2"/>
+      <text x="270" y="323" text-anchor="middle" class="label" font-weight="700">Feed-Forward (MLP)</text>
+      <text x="270" y="340" text-anchor="middle" class="label-sm">Linear → GELU → Linear · 4× 扩展</text>
+
+      <circle cx="270" cy="380" r="16" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+      <text x="270" y="386" text-anchor="middle" font-size="20" font-weight="700" fill="var(--orange)">+</text>
+      <path d="M 410 210 L 410 380 L 286 380" stroke="var(--red)" stroke-width="2" fill="none" stroke-dasharray="6,4" marker-end="url(#arrTR)"/>
+
+      <!-- 输出 -->
+      <rect x="190" y="420" width="160" height="34" rx="6" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+      <text x="270" y="442" text-anchor="middle" class="label" font-weight="700">输出(到下一块)</text>
+
+      <!-- 主路径箭头 -->
+      <g stroke="var(--ink-3)" stroke-width="1.3" fill="none">
+        <path d="M 270 44 L 270 78" marker-end="url(#arrTM)"/>
+        <path d="M 270 110 L 270 128" marker-end="url(#arrTM)"/>
+        <path d="M 270 180 L 270 196" marker-end="url(#arrTM)"/>
+        <path d="M 270 226 L 270 248" marker-end="url(#arrTM)"/>
+        <path d="M 270 280 L 270 298" marker-end="url(#arrTM)"/>
+        <path d="M 270 350 L 270 366" marker-end="url(#arrTM)"/>
+        <path d="M 270 396 L 270 418" marker-end="url(#arrTM)"/>
+      </g>
+
+      <!-- 标签 -->
+      <text x="445" y="100" class="label-sm" fill="var(--red)" font-weight="700">残差</text>
+
+      <defs>
+        <marker id="arrTM" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker>
+        <marker id="arrTR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--red)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 6.2.1</span> 一个 Transformer Block · LN → Attn → 残差 · LN → FFN → 残差 · 一般堆 12-96 层。
+  </div>
+</div>
+
+<h2>位置编码(Positional Encoding)</h2>
+
+<p>
+注意力本身<b>不知道顺序</b> —— 打乱输入顺序,输出也只是被打乱(置换不变)。
+但语言显然有顺序!"狗咬人"≠"人咬狗"。所以要把<b>位置信息加进 embedding</b>:
+</p>
+
+<h3>正弦位置编码(原版)</h3>
+
+<div class="math-scroll">
+$$PE_{(pos, 2i)} = \sin(pos / 10000^{2i/d}), \qquad PE_{(pos, 2i+1)} = \cos(pos / 10000^{2i/d})$$
+</div>
+
+<p>不同维度对应不同频率的正余弦。优势:可以泛化到比训练长的序列。</p>
+
+<h3>RoPE(旋转位置编码)— 当今 LLM 主流</h3>
+
+<p>
+LLaMA、Qwen、Mistral 都用 <b>RoPE</b>:把位置作为<b>旋转角度</b>嵌入到 Q/K 里,
+让点积自然包含相对位置信息。比加性 PE 在长上下文上效果更好。
+</p>
+
+<h2>FFN — 4× 扩展规则</h2>
+
+<div class="math-scroll">
+$$\text{FFN}(x) = W_2 \cdot \text{GELU}(W_1 x + b_1) + b_2$$
+</div>
+
+<p>
+中间层维度通常是输入的 <b>4 倍</b>(d_model = 512 → ffn_dim = 2048)。这是经验发现的甜蜜点。
+现代 LLaMA 用 SwiGLU(三个矩阵 + Swish 门控),效果更好。
+</p>
+
+<div class="callout">
+  <span class="callout-title">FFN 占多少参数?</span>
+  整个 Transformer 的<b>一大半参数在 FFN</b>!不在注意力。这促成了 MoE(稀疏专家混合)优化:
+  让多组 FFN 共享存储,每次只激活其中一组。
+</div>
+
+<h2>完整数据流(Decoder-only,GPT 类)</h2>
+
+<ol>
+  <li><b>Tokenize</b>:句子 → token IDs(BPE 分词)</li>
+  <li><b>Embedding</b>:每个 ID 查一个向量,加上位置编码</li>
+  <li><b>N 层 Transformer Block</b>:每层做注意力 + FFN</li>
+  <li><b>最后 LN + 线性投影到 vocab_size</b></li>
+  <li><b>Softmax</b> → 下一个 token 的概率分布</li>
+  <li><b>采样</b>(贪心 / top-k / top-p)→ 输出 token,作为下一步输入(自回归)</li>
+</ol>
+
+<h2>KV Cache — 推理加速的关键</h2>
+
+<p>
+生成第 100 个 token 时,前 99 个的 K, V 已经算过了。<b>缓存它们</b>,新一步只算第 100 个的 Q,
+和已有的 K, V 算注意力即可。无 KV cache:每生成 1 token = 重算整个序列;有 KV cache:每步是常数操作。
+</p>
+
+<h2>Transformer 家族树</h2>
+
+<table class="cmp-table">
+<tr><th>类型</th><th>代表</th><th>特点</th></tr>
+<tr><td>NLP-Encoder</td><td>BERT, RoBERTa</td><td>双向理解,适合分类</td></tr>
+<tr><td>NLP-Decoder</td><td>GPT 系列, Claude, LLaMA</td><td>生成,因果掩码</td></tr>
+<tr><td>NLP-Both</td><td>T5, BART</td><td>序列到序列任务</td></tr>
+<tr><td>视觉</td><td>ViT, Swin, DINO</td><td>图像切 patch 当 token</td></tr>
+<tr><td>多模态</td><td>CLIP, BLIP, GPT-4V</td><td>图文对齐</td></tr>
+<tr><td>生物</td><td>AlphaFold2, ESM-2</td><td>蛋白质结构、功能</td></tr>
+<tr><td>扩散</td><td>DiT, Stable Diffusion</td><td>条件生成主干</td></tr>
+</table>
+
+<h2>PyTorch 代码</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch.nn as nn
+
+class TransformerBlock(nn.Module):
+    def __init__(self, d_model=512, n_heads=8, ffn_dim=2048):
+        super().__init__()
+        self.ln1 = nn.LayerNorm(d_model)
+        self.attn = nn.MultiheadAttention(d_model, n_heads, batch_first=True)
+        self.ln2 = nn.LayerNorm(d_model)
+        self.ffn = nn.Sequential(
+            nn.Linear(d_model, ffn_dim),
+            nn.GELU(),
+            nn.Linear(ffn_dim, d_model),
+        )
+
+    def forward(self, x, mask=None):
+        # Pre-LN: norm 在残差之前
+        a, _ = self.attn(self.ln1(x), self.ln1(x), self.ln1(x), attn_mask=mask)
+        x = x + a
+        x = x + self.ffn(self.ln2(x))
+        return x
+
+# PyTorch 内置
+encoder = nn.TransformerEncoder(
+    nn.TransformerEncoderLayer(d_model=512, nhead=8, batch_first=True),
+    num_layers=6
+)</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['27-transformer'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('GPT 类模型属于:',
+         ['Encoder-only', 'Decoder-only', 'Encoder-Decoder', '都不是'], 1) +
+    quiz('FFN 中间层维度通常是输入的几倍?',
+         ['1', '2', '4', '10'], 2) +
+    quiz('Transformer 为什么需要位置编码?',
+         ['加大参数', '注意力对位置置换不变,需要补充顺序', '美观', '加速'], 1) +
+    quiz('KV Cache 是为了:',
+         ['训练加速', '推理加速,避免重复计算 K, V', '节省显存', '正则化'], 1) +
+    quiz('当今 LLM(LLaMA, Qwen)主流位置编码?',
+         ['正弦', 'BERT 学习式', 'RoPE(旋转)', '无'], 2);
+  typeset(qs);
+};
+</script>

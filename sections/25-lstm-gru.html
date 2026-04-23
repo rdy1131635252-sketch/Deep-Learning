@@ -1,0 +1,422 @@
+<p class="lead">
+为解决 RNN 的梯度消失问题,1997 年 LSTM 横空出世,2014 年 GRU 做了精简版。它们的核心是<b>"门控"</b> ——
+让网络学会主动决定"该记什么、该忘什么"。
+</p>
+
+<h2>LSTM 的核心思想</h2>
+
+<div class="callout">
+  <span class="callout-title">一句话</span>
+  普通 RNN 只有一个状态 $h$。LSTM 额外引入一个<b>"细胞状态" $C$</b>,像高速公路一样贯穿整个序列,几乎不受非线性衰减。
+  然后用<b>三个门</b>精确控制信息如何进出这条高速公路。
+</div>
+
+<h3>三个门 + 细胞状态</h3>
+
+<div class="math-scroll">
+$$f_t = \sigma(W_f[h_{t-1}, x_t] + b_f) \qquad \text{遗忘门}$$
+$$i_t = \sigma(W_i[h_{t-1}, x_t] + b_i) \qquad \text{输入门}$$
+$$o_t = \sigma(W_o[h_{t-1}, x_t] + b_o) \qquad \text{输出门}$$
+$$\tilde{C}_t = \tanh(W_C[h_{t-1}, x_t] + b_C) \qquad \text{候选细胞}$$
+$$C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t \qquad \text{细胞更新(加法!)}$$
+$$h_t = o_t \odot \tanh(C_t)$$
+</div>
+
+<p>
+每个门输出是 $(0,1)$ 之间的向量,像<b>可学习的开关</b>:"0 = 关闭、1 = 全通过"。
+</p>
+
+<h2>LSTM 视图一:沿时间展开的总览</h2>
+
+<p>"我爱北京" 4 个时间步 · 每步更新 $C_t$ 和 $h_t$ · 细胞状态 $C$ 形成"传送带":</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 260" class="svg-root" style="max-width:100%">
+      <!-- C 传送带 -->
+      <line x1="20" y1="55" x2="710" y2="55" stroke="var(--purple)" stroke-width="5" opacity="0.4"/>
+      <text x="14" y="36" class="label" fill="var(--purple)" font-weight="700">C</text>
+      <text x="660" y="44" class="label-sm" fill="var(--purple)" font-weight="700">细胞状态(传送带)</text>
+      <!-- h 主线 -->
+      <line x1="20" y1="140" x2="710" y2="140" stroke="var(--blue)" stroke-width="2" opacity="0.3"/>
+      <text x="14" y="144" class="label" fill="var(--blue)" font-weight="700">h</text>
+
+      <!-- 4 个 LSTM 单元 -->
+      <g>
+        <rect x="85" y="100" width="80" height="80" rx="6" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+        <text x="125" y="128" text-anchor="middle" class="label" font-weight="700">LSTM</text>
+        <text x="125" y="148" text-anchor="middle" class="label-sm">t = 1</text>
+        <text x="125" y="166" text-anchor="middle" class="label-sm" fill="var(--ink-3)">f, i, o, C̃</text>
+        <rect x="100" y="200" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="125" y="222" text-anchor="middle" class="label" font-weight="700">我</text>
+        <path d="M 125 200 L 125 180" stroke="var(--orange)" fill="none" marker-end="url(#a52)"/>
+      </g>
+      <g>
+        <rect x="245" y="100" width="80" height="80" rx="6" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+        <text x="285" y="128" text-anchor="middle" class="label" font-weight="700">LSTM</text>
+        <text x="285" y="148" text-anchor="middle" class="label-sm">t = 2</text>
+        <rect x="260" y="200" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="285" y="222" text-anchor="middle" class="label" font-weight="700">爱</text>
+        <path d="M 285 200 L 285 180" stroke="var(--orange)" fill="none" marker-end="url(#a52)"/>
+      </g>
+      <g>
+        <rect x="405" y="100" width="80" height="80" rx="6" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+        <text x="445" y="128" text-anchor="middle" class="label" font-weight="700">LSTM</text>
+        <text x="445" y="148" text-anchor="middle" class="label-sm">t = 3</text>
+        <rect x="420" y="200" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="445" y="222" text-anchor="middle" class="label" font-weight="700">北</text>
+        <path d="M 445 200 L 445 180" stroke="var(--orange)" fill="none" marker-end="url(#a52)"/>
+      </g>
+      <g>
+        <rect x="565" y="100" width="80" height="80" rx="6" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+        <text x="605" y="128" text-anchor="middle" class="label" font-weight="700">LSTM</text>
+        <text x="605" y="148" text-anchor="middle" class="label-sm">t = 4</text>
+        <rect x="580" y="200" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="605" y="222" text-anchor="middle" class="label" font-weight="700">京</text>
+        <path d="M 605 200 L 605 180" stroke="var(--orange)" fill="none" marker-end="url(#a52)"/>
+      </g>
+      <!-- C, h 到每个单元 -->
+      <g stroke="var(--purple)" stroke-width="2.5" fill="none">
+        <path d="M 65 55 L 125 95" marker-end="url(#a52P)"/>
+        <path d="M 165 95 L 165 55 L 245 55 L 285 95" marker-end="url(#a52P)"/>
+        <path d="M 325 95 L 325 55 L 405 55 L 445 95" marker-end="url(#a52P)"/>
+        <path d="M 485 95 L 485 55 L 565 55 L 605 95" marker-end="url(#a52P)"/>
+        <path d="M 645 95 L 645 55 L 705 55" marker-end="url(#a52P)"/>
+      </g>
+      <g stroke="var(--blue)" stroke-width="1.8" fill="none">
+        <path d="M 65 140 L 85 140" marker-end="url(#a52B)"/>
+        <path d="M 165 140 L 245 140" marker-end="url(#a52B)"/>
+        <path d="M 325 140 L 405 140" marker-end="url(#a52B)"/>
+        <path d="M 485 140 L 565 140" marker-end="url(#a52B)"/>
+        <path d="M 645 140 L 705 140" marker-end="url(#a52B)"/>
+      </g>
+      <defs>
+        <marker id="a52" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--orange)"/></marker>
+        <marker id="a52P" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--purple)"/></marker>
+        <marker id="a52B" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--blue)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 5.2.1</span> LSTM 沿时间展开 · 紫色 $C$ 贯穿始终(传送带)· 蓝色 $h$ 也逐步传递 · 橙色 $x$ 为每步输入。
+  </div>
+</div>
+
+<h2>LSTM 视图二:单个时间步内部</h2>
+
+<p>聚焦一个时间步,看四个门如何协作:</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 340" class="svg-root" style="max-width:100%">
+      <!-- 细胞传送带 -->
+      <line x1="20" y1="50" x2="710" y2="50" stroke="var(--purple)" stroke-width="5" opacity="0.4"/>
+      <text x="25" y="40" class="label" fill="var(--purple)" font-weight="700">C_{t-1}</text>
+      <text x="670" y="40" class="label" fill="var(--purple)" font-weight="700">C_t</text>
+
+      <!-- h_{t-1} -->
+      <circle cx="50" cy="200" r="25" fill="var(--bg-soft)" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="50" y="204" text-anchor="middle" class="label" font-weight="700">h_{t-1}</text>
+
+      <!-- x_t -->
+      <rect x="25" y="280" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+      <text x="50" y="303" text-anchor="middle" class="label" font-weight="700">x_t</text>
+
+      <!-- 遗忘门 f -->
+      <rect x="130" y="150" width="80" height="42" rx="8" fill="#fae2d0" stroke="var(--orange)" stroke-width="2"/>
+      <text x="170" y="170" text-anchor="middle" class="label" font-weight="700">f_t</text>
+      <text x="170" y="186" text-anchor="middle" class="label-sm">σ · 遗忘门</text>
+
+      <!-- 输入门 i -->
+      <rect x="240" y="210" width="80" height="42" rx="8" fill="#d9ebde" stroke="var(--green)" stroke-width="2"/>
+      <text x="280" y="230" text-anchor="middle" class="label" font-weight="700">i_t</text>
+      <text x="280" y="246" text-anchor="middle" class="label-sm">σ · 输入门</text>
+
+      <!-- 候选 C~ -->
+      <rect x="340" y="260" width="80" height="42" rx="8" fill="#f5f0fb" stroke="var(--purple)" stroke-width="1.5"/>
+      <text x="380" y="280" text-anchor="middle" class="label" font-weight="700">C̃_t</text>
+      <text x="380" y="296" text-anchor="middle" class="label-sm">tanh · 候选</text>
+
+      <!-- 乘号 × f -->
+      <circle cx="170" cy="50" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="170" y="55" text-anchor="middle" font-weight="700" font-size="16">×</text>
+      <path d="M 170 110 L 170 64" stroke="var(--orange)" stroke-width="2" fill="none" stroke-dasharray="0" marker-end="url(#a52a)"/>
+      <!-- + -->
+      <circle cx="370" cy="50" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="370" y="55" text-anchor="middle" font-weight="700" font-size="16">+</text>
+      <!-- 乘号 i × C~ -->
+      <circle cx="370" cy="150" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="370" y="155" text-anchor="middle" font-weight="700" font-size="16">×</text>
+      <path d="M 320 231 Q 360 180 370 164" stroke="var(--green)" stroke-width="2" fill="none" marker-end="url(#a52a)"/>
+      <path d="M 380 260 L 370 164" stroke="var(--purple)" stroke-width="2" fill="none" marker-end="url(#a52a)"/>
+      <path d="M 370 135 L 370 64" stroke="var(--ink-3)" stroke-width="2" fill="none" marker-end="url(#a52a)"/>
+
+      <!-- 输出门 o -->
+      <rect x="490" y="150" width="80" height="42" rx="8" fill="#d6e4f6" stroke="var(--blue)" stroke-width="2"/>
+      <text x="530" y="170" text-anchor="middle" class="label" font-weight="700">o_t</text>
+      <text x="530" y="186" text-anchor="middle" class="label-sm">σ · 输出门</text>
+
+      <!-- tanh(C) -->
+      <rect x="450" y="60" width="90" height="36" rx="8" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="1.5"/>
+      <text x="495" y="83" text-anchor="middle" class="label">tanh(C_t)</text>
+
+      <!-- × h -->
+      <circle cx="615" cy="200" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="615" y="205" text-anchor="middle" font-weight="700" font-size="16">×</text>
+      <path d="M 540 96 L 615 188" stroke="var(--purple)" stroke-width="1.8" fill="none" marker-end="url(#a52a)"/>
+      <path d="M 570 171 L 615 190" stroke="var(--blue)" stroke-width="1.8" fill="none" marker-end="url(#a52a)"/>
+
+      <!-- h_t -->
+      <circle cx="690" cy="200" r="25" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2.5"/>
+      <text x="690" y="204" text-anchor="middle" class="label" font-weight="700">h_t</text>
+      <path d="M 629 200 L 665 200" stroke="var(--ink-3)" stroke-width="1.5" fill="none" marker-end="url(#a52a)"/>
+
+      <!-- 拼接 [h_{t-1}, x_t] 指向各门 -->
+      <g stroke="var(--ink-3)" stroke-width="1.2" fill="none" stroke-dasharray="3,3">
+        <path d="M 75 200 L 125 172" marker-end="url(#a52a)"/>
+        <path d="M 75 200 L 235 230" marker-end="url(#a52a)"/>
+        <path d="M 75 200 L 335 280" marker-end="url(#a52a)"/>
+        <path d="M 75 200 L 485 172" marker-end="url(#a52a)"/>
+        <path d="M 75 298 L 125 190" marker-end="url(#a52a)"/>
+        <path d="M 75 298 L 235 245" marker-end="url(#a52a)"/>
+        <path d="M 75 298 L 335 295" marker-end="url(#a52a)"/>
+        <path d="M 75 298 L 485 190" marker-end="url(#a52a)"/>
+      </g>
+
+      <!-- 到 C_t 箭头 -->
+      <path d="M 384 50 L 670 50" stroke="var(--purple)" stroke-width="2" fill="none" marker-end="url(#a52P2)"/>
+
+      <defs>
+        <marker id="a52a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker>
+        <marker id="a52P2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--purple)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 5.2.2</span> LSTM 内部 · 三个门(f, i, o)各自 σ 激活成 (0,1) 开关 · 候选 C̃ 经 tanh · $C_t = f_tC_{t-1} + i_t\tilde{C}_t$ 是加法!
+  </div>
+</div>
+
+<h2>为什么"加法更新"让梯度畅通</h2>
+
+<p>关键公式 $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$ 是<b>加法</b>。算 $\partial C_t / \partial C_{t-1}$:</p>
+
+<div class="math-scroll">
+$$\frac{\partial C_t}{\partial C_{t-1}} = f_t$$
+</div>
+
+<p>
+这是一个<b>元素级</b>的值,如果 $f_t$ 接近 1,梯度几乎 100% 通过。普通 RNN 的对应项是 $W_{hh}^T \cdot \text{diag}(\tanh'(\cdot))$,会<b>指数级衰减</b>。加法结构是 LSTM 对抗梯度消失的数学原因。
+</p>
+
+<hr>
+
+<h2>GRU(Gated Recurrent Unit)</h2>
+
+<p>
+Cho 等人 2014 年提出。<b>LSTM 的精简版</b> —— 合并细胞状态和隐藏状态、把 3 个门减到 2 个(<b>更新门 z</b> + <b>重置门 r</b>)。参数少 25% 左右,效果接近 LSTM。
+</p>
+
+<div class="math-scroll">
+$$z_t = \sigma(W_z[h_{t-1}, x_t]) \qquad \text{更新门}$$
+$$r_t = \sigma(W_r[h_{t-1}, x_t]) \qquad \text{重置门}$$
+$$\tilde{h}_t = \tanh(W[r_t \odot h_{t-1},\; x_t])$$
+$$h_t = (1-z_t)\odot h_{t-1} + z_t\odot \tilde{h}_t$$
+</div>
+
+<h2>GRU 视图一:沿时间展开的总览</h2>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 200" class="svg-root" style="max-width:100%">
+      <line x1="20" y1="95" x2="710" y2="95" stroke="var(--teal)" stroke-width="3" opacity="0.4"/>
+      <text x="680" y="86" class="label-sm" fill="var(--teal)" font-weight="700">h</text>
+      <g>
+        <rect x="85" y="60" width="80" height="70" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2"/>
+        <text x="125" y="85" text-anchor="middle" class="label" font-weight="700">GRU</text>
+        <text x="125" y="104" text-anchor="middle" class="label-sm">t=1</text>
+        <text x="125" y="120" text-anchor="middle" class="label-sm" fill="var(--ink-3)">z, r</text>
+        <rect x="100" y="150" width="50" height="34" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="125" y="171" text-anchor="middle" class="label" font-weight="700">我</text>
+        <path d="M 125 150 L 125 130" stroke="var(--orange)" fill="none" marker-end="url(#a52g)"/>
+      </g>
+      <g>
+        <rect x="245" y="60" width="80" height="70" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2"/>
+        <text x="285" y="85" text-anchor="middle" class="label" font-weight="700">GRU</text>
+        <text x="285" y="104" text-anchor="middle" class="label-sm">t=2</text>
+        <rect x="260" y="150" width="50" height="34" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="285" y="171" text-anchor="middle" class="label" font-weight="700">爱</text>
+        <path d="M 285 150 L 285 130" stroke="var(--orange)" fill="none" marker-end="url(#a52g)"/>
+      </g>
+      <g>
+        <rect x="405" y="60" width="80" height="70" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2"/>
+        <text x="445" y="85" text-anchor="middle" class="label" font-weight="700">GRU</text>
+        <text x="445" y="104" text-anchor="middle" class="label-sm">t=3</text>
+        <rect x="420" y="150" width="50" height="34" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="445" y="171" text-anchor="middle" class="label" font-weight="700">北</text>
+        <path d="M 445 150 L 445 130" stroke="var(--orange)" fill="none" marker-end="url(#a52g)"/>
+      </g>
+      <g>
+        <rect x="565" y="60" width="80" height="70" rx="6" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2"/>
+        <text x="605" y="85" text-anchor="middle" class="label" font-weight="700">GRU</text>
+        <text x="605" y="104" text-anchor="middle" class="label-sm">t=4</text>
+        <rect x="580" y="150" width="50" height="34" rx="5" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="605" y="171" text-anchor="middle" class="label" font-weight="700">京</text>
+        <path d="M 605 150 L 605 130" stroke="var(--orange)" fill="none" marker-end="url(#a52g)"/>
+      </g>
+      <g stroke="var(--teal)" stroke-width="2.5" fill="none">
+        <path d="M 65 95 L 85 95" marker-end="url(#a52T)"/>
+        <path d="M 165 95 L 245 95" marker-end="url(#a52T)"/>
+        <path d="M 325 95 L 405 95" marker-end="url(#a52T)"/>
+        <path d="M 485 95 L 565 95" marker-end="url(#a52T)"/>
+        <path d="M 645 95 L 705 95" marker-end="url(#a52T)"/>
+      </g>
+      <defs>
+        <marker id="a52g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--orange)"/></marker>
+        <marker id="a52T" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--teal)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 5.2.3</span> GRU 沿时间展开 · 只传递一个 $h$,比 LSTM 简洁。
+  </div>
+</div>
+
+<h2>GRU 视图二:单个时间步内部</h2>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 300" class="svg-root" style="max-width:100%">
+      <!-- h_{t-1} -->
+      <circle cx="50" cy="150" r="25" fill="var(--bg-soft)" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="50" y="154" text-anchor="middle" class="label" font-weight="700">h_{t-1}</text>
+      <!-- x_t -->
+      <rect x="25" y="240" width="50" height="36" rx="5" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+      <text x="50" y="263" text-anchor="middle" class="label" font-weight="700">x_t</text>
+
+      <!-- 重置门 r -->
+      <rect x="160" y="180" width="80" height="42" rx="8" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="200" y="200" text-anchor="middle" class="label" font-weight="700">r_t</text>
+      <text x="200" y="216" text-anchor="middle" class="label-sm">σ · 重置门</text>
+
+      <!-- r × h_{t-1} -->
+      <circle cx="310" cy="150" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="310" y="155" text-anchor="middle" font-weight="700" font-size="16">×</text>
+      <path d="M 240 201 L 296 162" stroke="var(--yellow)" stroke-width="1.8" fill="none" marker-end="url(#a52a2)"/>
+      <path d="M 75 150 L 296 150" stroke="var(--ink-3)" stroke-width="1.5" fill="none" marker-end="url(#a52a2)"/>
+
+      <!-- 候选 h~ -->
+      <rect x="360" y="130" width="90" height="42" rx="8" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2"/>
+      <text x="405" y="150" text-anchor="middle" class="label" font-weight="700">h̃_t</text>
+      <text x="405" y="166" text-anchor="middle" class="label-sm">tanh · 候选</text>
+      <path d="M 324 150 L 356 150" stroke="var(--ink-3)" stroke-width="1.5" fill="none" marker-end="url(#a52a2)"/>
+      <path d="M 75 258 L 360 170" stroke="var(--orange)" stroke-width="1.5" fill="none" stroke-dasharray="3,3" marker-end="url(#a52a2)"/>
+
+      <!-- 更新门 z -->
+      <rect x="250" y="50" width="80" height="42" rx="8" fill="#e3d6f2" stroke="var(--purple)" stroke-width="2"/>
+      <text x="290" y="70" text-anchor="middle" class="label" font-weight="700">z_t</text>
+      <text x="290" y="86" text-anchor="middle" class="label-sm">σ · 更新门</text>
+
+      <!-- (1-z) × h_{t-1} -->
+      <circle cx="540" cy="90" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="540" y="95" text-anchor="middle" font-weight="700" font-size="14">(1-z)</text>
+      <!-- z × h~ -->
+      <circle cx="540" cy="210" r="14" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="540" y="215" text-anchor="middle" font-weight="700" font-size="14">z</text>
+
+      <!-- 加号 -->
+      <circle cx="625" cy="150" r="16" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="2"/>
+      <text x="625" y="156" text-anchor="middle" font-weight="700" font-size="18">+</text>
+
+      <!-- 连线 -->
+      <g stroke="var(--ink-3)" stroke-width="1.3" fill="none">
+        <path d="M 290 92 L 535 80" marker-end="url(#a52a2)"/>
+        <path d="M 290 92 L 535 200" marker-end="url(#a52a2)"/>
+        <path d="M 75 150 Q 200 110 535 90" marker-end="url(#a52a2)"/>
+        <path d="M 450 150 Q 500 180 535 205" marker-end="url(#a52a2)"/>
+        <path d="M 556 90 L 616 142" marker-end="url(#a52a2)"/>
+        <path d="M 556 210 L 616 160" marker-end="url(#a52a2)"/>
+      </g>
+
+      <!-- h_t -->
+      <circle cx="690" cy="150" r="25" fill="var(--teal-soft)" stroke="var(--teal)" stroke-width="2.5"/>
+      <text x="690" y="154" text-anchor="middle" class="label" font-weight="700">h_t</text>
+      <path d="M 641 150 L 665 150" stroke="var(--ink-3)" stroke-width="1.5" fill="none" marker-end="url(#a52a2)"/>
+
+      <!-- 门输入来源 -->
+      <g stroke="var(--ink-3)" stroke-width="1" fill="none" stroke-dasharray="2,3" opacity="0.7">
+        <path d="M 75 150 L 155 198"/>
+        <path d="M 75 258 L 155 218"/>
+        <path d="M 75 150 L 245 68"/>
+        <path d="M 75 258 L 245 88"/>
+      </g>
+
+      <defs>
+        <marker id="a52a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 5.2.4</span> GRU 内部 · 两个门(r, z)· $h_t$ 是 $h_{t-1}$ 和候选 $\tilde{h}_t$ 的<b>线性插值</b>,由 z 决定混合比例。
+  </div>
+</div>
+
+<h2>RNN · LSTM · GRU 对比</h2>
+
+<table class="cmp-table">
+<tr><th></th><th>RNN</th><th>LSTM</th><th>GRU</th></tr>
+<tr><td>状态数</td><td>1 (h)</td><td>2 (h, C)</td><td>1 (h)</td></tr>
+<tr><td>门数</td><td>0</td><td>3</td><td>2</td></tr>
+<tr><td>参数量</td><td>1×</td><td><b>4×</b></td><td>3×</td></tr>
+<tr><td>长距离依赖</td><td>差(<10 步)</td><td><b>极强</b>(数百步)</td><td>强</td></tr>
+<tr><td>训练速度</td><td>最快</td><td>最慢</td><td>中等</td></tr>
+</table>
+
+<div class="callout c-info">
+  <span class="callout-title">2026 年的现实</span>
+  NLP 主流任务已被 Transformer 取代,但 LSTM/GRU 在以下场景仍有价值:
+  <ul>
+    <li>小数据集(Transformer 需要大量数据)</li>
+    <li>低延迟 / 流式 / 边缘设备部署</li>
+    <li>某些时间序列预测(股票、传感器)</li>
+    <li>强化学习的 recurrent policy</li>
+  </ul>
+</div>
+
+<h2>PyTorch 代码</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch.nn as nn
+
+# LSTM
+lstm = nn.LSTM(input_size=64, hidden_size=128, batch_first=True, num_layers=2)
+x = torch.randn(32, 10, 64)          # (batch, seq, feature)
+output, (h_n, c_n) = lstm(x)          # output: (32, 10, 128)
+
+# GRU —— 完全一样的接口,少个 C
+gru = nn.GRU(input_size=64, hidden_size=128, batch_first=True)
+output, h_n = gru(x)
+
+# 双向 LSTM(BiLSTM)
+bilstm = nn.LSTM(64, 128, bidirectional=True, batch_first=True)
+# output 维度翻倍:(32, 10, 256)</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['25-lstm-gru'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('LSTM 抗梯度消失的核心机制?',
+         ['更大的学习率', '细胞状态 + 加法更新', 'Dropout', 'BN'], 1) +
+    quiz('LSTM 有几个门?',
+         ['1', '2', '3', '4'], 2, '遗忘门 f、输入门 i、输出门 o') +
+    quiz('GRU 比 LSTM 主要的简化?',
+         ['没有激活', '合并 h 和 C,2 个门', '没有权重', '只有一层'], 1) +
+    quiz('$C_t = f_t C_{t-1} + i_t \\tilde{C}_t$ 关键是加法,为什么?',
+         ['更快', '$\\frac{\\partial C_t}{\\partial C_{t-1}}=f_t$,梯度畅通', '更准', '更小'], 1);
+  typeset(qs);
+};
+</script>

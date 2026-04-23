@@ -1,0 +1,194 @@
+<p class="lead">
+梯度下降需要<b>梯度</b>。怎么算?答案是链式法则,从后往前传播 —— 反向传播。
+它让训练百层神经网络变成可能。
+</p>
+
+<h2>核心:链式法则的三段色</h2>
+
+<p>对一个权重 $w$,损失 $L$ 的梯度分成三段:</p>
+
+<div class="math-scroll">
+$$\frac{\partial L}{\partial w} = \underbrace{\frac{\partial L}{\partial \hat{y}}}_{\color{red}{损失}} \cdot \underbrace{\frac{\partial \hat{y}}{\partial z}}_{\color{purple}{激活}} \cdot \underbrace{\frac{\partial z}{\partial w}}_{\color{blue}{线性}}$$
+</div>
+
+<ul>
+  <li><span class="cr-loss cr-loss-bg" style="background:var(--red-tint); color:var(--red); padding:2px 5px; border-radius:3px">损失函数</span> 的导数(最后一步)</li>
+  <li><span class="cr-act cr-act-bg" style="background:var(--purple-tint); color:var(--purple); padding:2px 5px; border-radius:3px">激活函数</span> 的导数</li>
+  <li><span class="cr-z cr-z-bg" style="background:var(--blue-tint); color:var(--blue); padding:2px 5px; border-radius:3px">$z = wx+b$</span> 对 $w$ 的偏导 = $x$</li>
+</ul>
+
+<h2>计算图(Computation Graph)</h2>
+
+<p>
+神经网络的任何运算都可以画成<b>有向无环图</b>:节点 = 运算,边 = 数据流动。
+PyTorch / TensorFlow 的 Autograd 就是基于这种图:
+</p>
+
+<ol>
+  <li>前向:每个节点算一遍,存下输入和输出</li>
+  <li>反向:从终点损失往前,每个节点按它的"局部导数规则"把上游梯度乘一下往下游传</li>
+</ol>
+
+<h2>三种基本节点的梯度规则</h2>
+
+<table class="cmp-table">
+<tr><th>节点类型</th><th>前向</th><th>反向</th></tr>
+<tr>
+  <td><b>加法</b> $y = a + b$</td>
+  <td>就是相加</td>
+  <td>梯度原样<b>分发</b>:$\frac{\partial L}{\partial a} = \frac{\partial L}{\partial y}$</td>
+</tr>
+<tr>
+  <td><b>乘法</b> $y = a \cdot b$</td>
+  <td>就是相乘</td>
+  <td>梯度<b>互换</b>:$\frac{\partial L}{\partial a} = \frac{\partial L}{\partial y} \cdot b$</td>
+</tr>
+<tr>
+  <td><b>max</b> $y = \max(a, b)$</td>
+  <td>较大者</td>
+  <td>梯度<b>路由</b>到 argmax(另一个为 0)</td>
+</tr>
+</table>
+
+<p>ReLU 就是 max(0, x):正区梯度 = 1 路由到下游,负区梯度 = 0 被截断。</p>
+
+<h2>逐步演示</h2>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg id="bp-svg" class="svg-root" viewBox="0 0 580 240" style="display:block; margin:0 auto; max-width:100%; background:var(--bg); border-radius:8px;"></svg>
+    <div class="controls" style="margin-top:12px">
+      <button class="btn" style="background:var(--red);color:#fff" id="bp-step">▶ 下一步</button>
+      <button class="btn" id="bp-reset">重置</button>
+      <span id="bp-cnt" style="font-size:13px; color: var(--ink-2);"></span>
+    </div>
+    <div id="bp-out" style="margin-top:12px;"></div>
+  </div>
+  <div class="figure-caption">
+    <span class="num">互动 3.6</span> 梯度"从右到左"一路传。每步看哪条边被激活。
+  </div>
+</div>
+
+<h2>雅可比矩阵视角</h2>
+
+<p>
+对向量输入/输出的层 $\mathbf{h} = f(\mathbf{z})$,"局部导数"是雅可比矩阵 $J$:</p>
+
+<div class="math-scroll">
+$$J_{ij} = \frac{\partial h_i}{\partial z_j}$$
+</div>
+
+<p>反向传播的本质:</p>
+
+<div class="math-scroll">
+$$\underbrace{\frac{\partial L}{\partial \mathbf{z}}}_{\text{传给下游}} = J^T \underbrace{\frac{\partial L}{\partial \mathbf{h}}}_{\text{上游来的梯度}}$$
+</div>
+
+<p>
+每一层都是"上游梯度 × 局部雅可比"。
+工程实现里几乎不显式算完整 $J$,而是用 <b>vector-Jacobian product (VJP)</b>,省大量内存。
+</p>
+
+<h2>PyTorch 自动求导</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch
+
+# 前向
+x = torch.tensor([1.0, 2.0], requires_grad=True)
+w = torch.tensor([0.5, -0.3], requires_grad=True)
+b = torch.tensor(0.1, requires_grad=True)
+
+z = (w * x).sum() + b       # 线性组合
+y = torch.sigmoid(z)         # 激活
+L = (y - 1.0) ** 2           # MSE 损失
+
+# 一行反向传播 — 自动算完所有梯度
+L.backward()
+
+print("∂L/∂w =", w.grad)
+print("∂L/∂b =", b.grad)
+
+# 注意:下一轮训练前要 opt.zero_grad()
+# 不然梯度会累加!</pre>
+</div>
+
+<div class="callout c-info">
+  <span class="callout-title">Autograd 的魔法</span>
+  你只写前向代码,框架通过<b>计算图</b>自动推导反向传播,得到所有参数的梯度。
+  这是现代深度学习框架的核心能力,也是研究者能快速实验各种新架构的基础。
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['18-backprop'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('反向传播的数学基础是?',
+         ['泰勒展开', '链式法则', '拉普拉斯', '贝叶斯定理'], 1) +
+    quiz('加法节点 $y = a + b$ 的反向:',
+         ['梯度原样分发', '梯度互换', '梯度清零', '梯度翻倍'], 0) +
+    quiz('乘法节点 $y = ab$ 反向时,$\\frac{\\partial L}{\\partial a}$ =?',
+         ['$\\frac{\\partial L}{\\partial y}$', '$\\frac{\\partial L}{\\partial y}\\cdot b$', '$a$', '$ab$'], 1, '互换值') +
+    quiz('PyTorch 反向传播一行代码:',
+         ['L.forward()', 'L.backward()', 'L.grad()', 'opt.step()'], 1);
+  typeset(qs);
+
+  // 反向传播动画
+  const nodes = {
+    x1: {x:70, y:60}, x2: {x:70, y:180},
+    h1: {x:290, y:60}, h2: {x:290, y:180},
+    o:  {x:500, y:120}
+  };
+  const edges = [
+    ['x1','h1','e1'], ['x2','h1','e2'],
+    ['x1','h2','e3'], ['x2','h2','e4'],
+    ['h1','o','e5'],  ['h2','o','e6']
+  ];
+  const bpSteps = [
+    { e: [], n: ['o'], msg: `前向完毕,算损失 <b>L = (ŷ - y_true)²</b>` },
+    { e: [], n: ['o'], msg: `<span style="color:var(--red); font-weight:700">∂L/∂ŷ</span> × <span style="color:var(--purple); font-weight:700">σ'</span> → δ₂(输出层误差)` },
+    { e: ['e5','e6'], n: ['o','h1','h2'], msg: `用 δ₂ 算 <b>∂L/∂W₂ = δ₂ · h</b>, 再传给隐藏层:δ₁ = δ₂·W₂·σ'` },
+    { e: ['e1','e2','e3','e4'], n: ['h1','h2','x1','x2'], msg: `用 δ₁ 算 <b>∂L/∂W₁ = δ₁ · x</b>` },
+    { e: [], n: [], msg: `<b style="color:var(--green)">✓ 梯度全部拿到,下一步 opt.step() 更新参数</b>` }
+  ];
+  let pos = 0;
+
+  function drawBP(hlE, hlN) {
+    let h = '';
+    edges.forEach(([f, t, id]) => {
+      const p1 = nodes[f], p2 = nodes[t];
+      const hl = hlE.includes(id);
+      const stroke = hl ? 'var(--red)' : 'var(--ink-3)';
+      const strokeWidth = hl ? '2.5' : '2';
+      h += `<line x1="${p1.x+24}" y1="${p1.y}" x2="${p2.x-24}" y2="${p2.y}" stroke="${stroke}" stroke-width="${strokeWidth}" fill="none"/>`;
+    });
+    Object.entries(nodes).forEach(([k, p]) => {
+      const hl = hlN.includes(k);
+      h += `<circle cx="${p.x}" cy="${p.y}" r="22" fill="${hl?'var(--red-tint)':'#fff'}" stroke="${hl?'var(--red)':'var(--ink-3)'}" stroke-width="${hl?3:1.5}"/>`;
+      h += `<text x="${p.x}" y="${p.y+4}" text-anchor="middle" font-size="11" font-weight="600">${k}</text>`;
+    });
+    if (pos > 0) {
+      h += `<text x="290" y="20" text-anchor="middle" fill="var(--red)" font-size="12" font-weight="700">⬅ 梯度回传 ⬅</text>`;
+    }
+    return h;
+  }
+
+  function render() {
+    const s = bpSteps[pos];
+    $('#bp-svg', root).innerHTML = drawBP(s.e, s.n);
+    let log = '';
+    for (let i = 0; i <= pos; i++) {
+      log += `<div class="step bwd"><span class="step-num">${i+1}</span>${bpSteps[i].msg}</div>`;
+    }
+    $('#bp-out', root).innerHTML = log;
+    $('#bp-cnt', root).textContent = `${pos+1} / ${bpSteps.length}`;
+  }
+
+  $('#bp-step', root).addEventListener('click', () => { if (pos < bpSteps.length - 1) pos++; render(); });
+  $('#bp-reset', root).addEventListener('click', () => { pos = 0; render(); });
+  render();
+};
+</script>

@@ -1,0 +1,97 @@
+/* ============================================================
+ * 设计令牌 — 参考 MLU-Explain 风格
+ * 长卷轴阅读、大留白、温暖的橙蓝双主色、衬线标题
+ * ============================================================ */
+
+:root {
+  /* ── 中性色 ─────────────────────────────── */
+  --bg:           #FBF8F3;    /* 奶白(温暖,偏暖)*/
+  --bg-soft:      #F3EEE4;    /* 次级背景 */
+  --ink:          #1F1B16;    /* 正文墨色 */
+  --ink-2:        #55493A;    /* 次级墨色 */
+  --ink-3:        #8B7A65;    /* 注解墨色 */
+  --rule:         #E2D8C4;    /* 分隔线 */
+  --rule-soft:    #EDE6D5;
+
+  /* ── 主色(MLU 的深橙 + 靛蓝)──────────────── */
+  --orange:       #D97333;    /* 主橙 */
+  --orange-deep:  #B5531E;
+  --orange-soft:  #FAE2D0;
+  --orange-tint:  #FFF2E6;
+
+  --blue:         #2D63A4;    /* 主蓝 */
+  --blue-deep:    #1D487F;
+  --blue-soft:    #D6E4F6;
+  --blue-tint:    #EEF4FB;
+
+  /* ── 语义色 ──────────────────────────────── */
+  --green:        #3E7D52;
+  --green-soft:   #D9EBDE;
+  --green-tint:   #F1F8F3;
+  --red:          #B53838;
+  --red-soft:     #F6D7D2;
+  --red-tint:     #FDF1EE;
+  --purple:       #7349A3;
+  --purple-soft:  #E3D6F2;
+  --purple-tint:  #F5F0FB;
+  --teal:         #2B7A78;
+  --teal-soft:    #BFE4E2;
+  --yellow:       #D4A017;
+  --yellow-soft:  #F7E9B8;
+  --yellow-tint:  #FFF9E3;
+
+  /* ── 字体 ────────────────────────────────── */
+  /* 衬线标题(像 MLU 那种学术杂志感)*/
+  --font-display: 'Lora', 'Source Han Serif SC', 'Noto Serif SC', 'Songti SC', serif;
+  /* 正文中文 */
+  --font-body:    'Lora', 'LXGW WenKai Screen', 'Noto Sans SC', -apple-system, sans-serif;
+  /* 代码 */
+  --font-mono:    'JetBrains Mono', 'Fira Code', Menlo, monospace;
+
+  /* ── 字号(严格的排版尺度,基于 1.25 倍比例)── */
+  --fs-caption:   13px;
+  --fs-small:     14px;
+  --fs-body:      17px;       /* MLU 正文较大,阅读舒适 */
+  --fs-lead:      19px;
+  --fs-h3:        22px;
+  --fs-h2:        28px;
+  --fs-h1:        40px;
+  --fs-display:   56px;
+
+  /* ── 行距 ────────────────────────────────── */
+  --lh-tight:     1.25;
+  --lh-normal:    1.65;
+  --lh-relaxed:   1.85;
+
+  /* ── 间距 ────────────────────────────────── */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  24px;
+  --sp-6:  32px;
+  --sp-7:  48px;
+  --sp-8:  64px;
+  --sp-9:  96px;
+
+  /* ── 圆角 ────────────────────────────────── */
+  --r-sm:  4px;
+  --r-md:  8px;
+  --r-lg:  16px;
+
+  /* ── 阴影 ────────────────────────────────── */
+  --sh-1:  0 1px 2px rgba(31, 27, 22, 0.06);
+  --sh-2:  0 4px 12px rgba(31, 27, 22, 0.08);
+  --sh-3:  0 12px 32px rgba(31, 27, 22, 0.12);
+
+  /* ── 布局宽度 ────────────────────────────── */
+  --measure:     680px;       /* 正文最大宽度(阅读性)*/
+  --measure-wide: 960px;      /* 图表/交互可以更宽 */
+  --measure-full: 1200px;
+  --toc-w:       240px;
+}
+
+/* 暗色模式占位(以后可扩展) */
+@media (prefers-color-scheme: dark) {
+  /* 保留亮色模式,暗色以后再做 */
+}
