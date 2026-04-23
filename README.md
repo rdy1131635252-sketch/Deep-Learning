@@ -1,8 +1,10 @@
 # 线性代数 × 神经网络 · 视觉互动教程
 
 从标量一步走到 Transformer,共 35 章。
+## 不想部署直接查看
+https://rdy1131635252-sketch.github.io/Deep-Learning/
 
-## 怎么打开
+## 本地部署怎么打开
 
 由于使用 `fetch()` 动态加载章节文件,**不能直接双击 index.html**(浏览器的 file:// 协议会拦截 fetch)。
 需要通过本地 HTTP 服务器打开:
