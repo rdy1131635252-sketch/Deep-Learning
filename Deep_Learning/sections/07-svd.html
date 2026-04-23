@@ -1,0 +1,224 @@
+<p class="lead">
+SVD 是线性代数里<b>最万用的工具</b>:对<b>任何矩阵</b>(方的、长的、胖的、奇异的)都能做。
+推荐系统、图像压缩、降噪、伪逆、PCA —— 它们背后都是 SVD。
+</p>
+
+<h2>核心公式</h2>
+
+<div class="math-scroll">
+$$A_{m\times n} = U_{m\times m}\,\Sigma_{m\times n}\,V^T_{n\times n}$$
+</div>
+
+<div class="callout">
+  <span class="callout-title">几何直觉</span>
+  <b>任何线性变换 = 旋转 → 缩放 → 再旋转</b>。SVD 正好把这三步分离:
+  <ul>
+    <li><b>$V^T$</b>:在输入空间里<b>旋转</b>(正交矩阵,只转不缩)</li>
+    <li><b>$\Sigma$</b>:沿各个正交主轴<b>缩放</b>(对角矩阵,对角线上的 $\sigma_i \geq 0$ 叫"奇异值")</li>
+    <li><b>$U$</b>:在输出空间里<b>再旋转</b>(正交矩阵)</li>
+  </ul>
+</div>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 680 220" class="svg-root">
+      <g transform="translate(20, 30)">
+        <text x="70" y="0" text-anchor="middle" class="label" font-weight="700">原图</text>
+        <circle cx="70" cy="100" r="50" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="70" y="190" text-anchor="middle" class="label-sm" fill="var(--ink-3)">单位圆</text>
+      </g>
+      <text x="170" y="130" text-anchor="middle" font-size="28" fill="var(--ink-2)">→</text>
+      <g transform="translate(200, 30)">
+        <text x="70" y="0" text-anchor="middle" class="label" font-weight="700">V<tspan baseline-shift="super" font-size="10">T</tspan> 旋转</text>
+        <circle cx="70" cy="100" r="50" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+        <line x1="30" y1="80" x2="110" y2="120" stroke="var(--blue)" stroke-width="2" opacity="0.6"/>
+        <line x1="50" y1="140" x2="90" y2="60"  stroke="var(--blue)" stroke-width="2" opacity="0.6"/>
+      </g>
+      <text x="350" y="130" text-anchor="middle" font-size="28" fill="var(--ink-2)">→</text>
+      <g transform="translate(380, 30)">
+        <text x="70" y="0" text-anchor="middle" class="label" font-weight="700">Σ 缩放</text>
+        <ellipse cx="70" cy="100" rx="90" ry="40" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="2"/>
+        <line x1="-20" y1="100" x2="160" y2="100" stroke="var(--purple)" stroke-width="1.5" opacity="0.6"/>
+        <line x1="70" y1="60" x2="70" y2="140" stroke="var(--purple)" stroke-width="1.5" opacity="0.6"/>
+        <text x="165" y="95" class="label-sm" fill="var(--purple)">σ₁</text>
+        <text x="78" y="58" class="label-sm" fill="var(--purple)">σ₂</text>
+      </g>
+      <text x="560" y="130" text-anchor="middle" font-size="28" fill="var(--ink-2)">→</text>
+      <g transform="translate(570, 30)">
+        <text x="70" y="0" text-anchor="middle" class="label" font-weight="700">U 旋转</text>
+        <ellipse cx="70" cy="100" rx="75" ry="48" fill="var(--green-tint)" stroke="var(--green)" stroke-width="2" transform="rotate(25, 70, 100)"/>
+      </g>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 1.7.1</span> SVD 的三步几何分解:任何矩阵都是"转 → 缩 → 再转"。
+  </div>
+</div>
+
+<h2>与特征分解的对比</h2>
+
+<table class="cmp-table">
+<tr><th></th><th>特征分解 $A = PDP^{-1}$</th><th>SVD $A = U\Sigma V^T$</th></tr>
+<tr><td>适用</td><td>只对<b>可对角化的方阵</b></td><td><b>任何矩阵</b></td></tr>
+<tr><td>分解唯一?</td><td>相似变换不唯一</td><td>基本唯一(奇异值唯一)</td></tr>
+<tr><td>正交?</td><td>一般 $P$ 不正交</td><td>$U, V$ 都是<b>正交的</b></td></tr>
+<tr><td>数值稳定</td><td>不稳定(病态矩阵难做)</td><td><b>非常稳定</b></td></tr>
+</table>
+
+<p><b>特殊情形关系</b>:若 $A$ 是对称正定方阵,则特征分解 = SVD(取 $U = V$)。</p>
+
+<h2>计算流程(2×2)</h2>
+
+<ol>
+  <li>计算 $A^T A$(对称,一定可以特征分解)</li>
+  <li>$A^T A$ 的特征值 $\lambda_i$ ≥ 0,<b>奇异值</b> $\sigma_i = \sqrt{\lambda_i}$</li>
+  <li>$A^T A$ 的特征向量(正交、归一化)→ 组成 $V$</li>
+  <li>$\Sigma$ 是 $\sigma_i$ 的对角阵</li>
+  <li>$U = AV\Sigma^{-1}$(对非零奇异值)</li>
+</ol>
+
+<h2>动手计算</h2>
+
+<div class="figure">
+  <div class="figure-body">
+    <div class="controls">
+      <div class="mgrid" style="grid-template-columns: repeat(2, auto)" id="svd-in">
+        <input type="number" value="3" id="s00">
+        <input type="number" value="2" id="s01">
+        <input type="number" value="2" id="s10">
+        <input type="number" value="1" id="s11">
+      </div>
+      <button class="btn btn-primary" id="svd-step">▶ 下一步</button>
+      <button class="btn" id="svd-reset">重置</button>
+      <span id="svd-cnt" style="font-size:13px; color:var(--ink-2);"></span>
+    </div>
+    <div id="svd-out"></div>
+  </div>
+  <div class="figure-caption">
+    <span class="num">互动 1.7</span> 4 步走完 SVD。
+  </div>
+</div>
+
+<h2>低秩近似 — SVD 的杀手锏</h2>
+
+<p>
+SVD 按奇异值大小"分层":$A = \sigma_1 \mathbf{u}_1\mathbf{v}_1^T + \sigma_2\mathbf{u}_2\mathbf{v}_2^T + \dots$
+每一项是"秩-1"的矩阵。<b>只保留最大的 $k$ 项</b>,得到<b>最好的秩-$k$ 近似</b>:
+</p>
+
+<div class="math-scroll">
+$$A_k = \sum_{i=1}^{k}\sigma_i\mathbf{u}_i\mathbf{v}_i^T$$
+</div>
+
+<p>这叫 <b>Eckart-Young 定理</b>:$A_k$ 是所有秩-$k$ 矩阵中<b>最接近 $A$ 的</b>(Frobenius 范数意义下)。</p>
+
+<h3>真实数据:奇异值衰减很快</h3>
+
+<p>
+一张 1000×1000 的自然图像,奇异值从大到小排列通常<b>前 50 个占总能量的 95%+</b>。
+于是:</p>
+
+<ul>
+  <li>原始数据:$10^6$ 个像素值</li>
+  <li>秩-50 近似:$2 \times 1000 \times 50 + 50 = 10^5$ 个数 → <b>压缩 10 倍</b>,视觉几乎无损</li>
+</ul>
+
+<h2>应用</h2>
+
+<ul>
+  <li><b>图像压缩</b>:JPEG 之外的另一条路线</li>
+  <li><b>推荐系统</b>:Netflix 奖比赛 — "用户×电影" 评分矩阵做 SVD,用低秩近似补全缺失评分</li>
+  <li><b>去噪</b>:小奇异值往往对应噪声,扔掉重构</li>
+  <li><b>PCA</b>:对中心化数据做 SVD ⇔ PCA(第 1.8 节)</li>
+  <li><b>伪逆</b>:$A^+ = V\Sigma^+ U^T$</li>
+  <li><b>LoRA</b>:大模型微调用低秩更新 $\Delta W = BA$,是 SVD 思想在深度学习的直接体现</li>
+</ul>
+
+<h2>NumPy 代码</h2>
+
+<div class="code" data-lang="Python">
+<pre>import numpy as np
+
+A = np.array([[3, 2], [2, 1]])
+U, sigma, Vt = np.linalg.svd(A)
+
+print("U =\n", U)
+print("奇异值 =", sigma)     # 向量,不是对角阵
+print("V^T =\n", Vt)
+
+# 重建 A
+A_back = U @ np.diag(sigma) @ Vt
+print("重建:\n", A_back)     # 约等于 A
+
+# 秩-1 近似(只保留最大的奇异值)
+A_rank1 = sigma[0] * np.outer(U[:, 0], Vt[0])
+print("秩-1 近似:\n", A_rank1)
+
+# 伪逆
+A_pinv = np.linalg.pinv(A)</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['07-svd'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('SVD 中的 $\\Sigma$ 是:',
+         ['旋转矩阵', '对角矩阵,对角线是奇异值', '单位矩阵', '$A$ 的逆'], 1,
+         '$\\Sigma$ 对角线上的 $\\sigma_i$ 叫奇异值,非负、从大到小排') +
+    quiz('SVD 对什么样的矩阵适用?',
+         ['只对方阵', '只对对称矩阵', '任何矩阵', '必须可逆'], 2,
+         'SVD 最大卖点:任何 $m\\times n$ 矩阵都能分解') +
+    quiz('保留 SVD 前 $k$ 个奇异值得到的 $A_k$ 有什么性质?',
+         ['和 $A$ 完全相等', '是所有秩 $k$ 矩阵中最接近 $A$ 的', '奇异值全 1', '秩大于 $A$'], 1,
+         'Eckart-Young 定理') +
+    quiz('1000×1000 图像保留前 50 个奇异值,存储成本约?',
+         ['50', '$10^5$', '$10^6$', '$2500$'], 1,
+         '$U$ 前 50 列 ($10^3\\times 50$) + 50 个奇异值 + $V^T$ 前 50 行 ≈ $10^5$');
+  typeset(qs);
+
+  let steps = [], pos = 0;
+
+  function build() {
+    const a = +$('#s00', root).value, b = +$('#s01', root).value;
+    const c = +$('#s10', root).value, d = +$('#s11', root).value;
+    // A^T A
+    const ata00 = a*a + c*c, ata01 = a*b + c*d;
+    const ata11 = b*b + d*d;
+    // 特征值
+    const tr = ata00 + ata11, det = ata00*ata11 - ata01*ata01;
+    const disc = Math.sqrt(Math.max(0, tr*tr - 4*det));
+    const l1 = (tr + disc)/2, l2 = (tr - disc)/2;
+    const s1 = Math.sqrt(Math.max(0, l1)), s2 = Math.sqrt(Math.max(0, l2));
+
+    steps = [
+      `<div class="step fwd"><span class="step-num">1</span>
+        计算 $A^T A = \\begin{pmatrix}${ata00.toFixed(2)} & ${ata01.toFixed(2)}\\\\${ata01.toFixed(2)} & ${ata11.toFixed(2)}\\end{pmatrix}$</div>`,
+      `<div class="step fwd"><span class="step-num">2</span>
+        $A^T A$ 的特征值: $\\lambda_1 = ${l1.toFixed(3)},\\ \\lambda_2 = ${l2.toFixed(3)}$</div>`,
+      `<div class="step done"><span class="step-num">3</span>
+        奇异值 $\\sigma_i = \\sqrt{\\lambda_i}$: $\\sigma_1 = ${s1.toFixed(3)},\\ \\sigma_2 = ${s2.toFixed(3)}$</div>`,
+      `<div class="step done"><span class="step-num">4</span>
+        $\\Sigma = \\begin{pmatrix}${s1.toFixed(2)} & 0\\\\0 & ${s2.toFixed(2)}\\end{pmatrix}$, 
+        $V$ 为 $A^TA$ 的特征向量,$U = AV\\Sigma^{-1}$ ✓</div>`,
+    ];
+  }
+
+  function render() {
+    const out = $('#svd-out', root);
+    out.innerHTML = steps.slice(0, pos+1).join('');
+    $('#svd-cnt', root).textContent = `${pos+1} / ${steps.length}`;
+    typeset(out);
+  }
+
+  function reset() { build(); pos = 0; render(); }
+  function step() { if (pos < steps.length - 1) pos++; render(); }
+
+  $('#svd-step', root).addEventListener('click', step);
+  $('#svd-reset', root).addEventListener('click', reset);
+  ['s00','s01','s10','s11'].forEach(id => $('#'+id, root).addEventListener('input', reset));
+  reset();
+};
+</script>

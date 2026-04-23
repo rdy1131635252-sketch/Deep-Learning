@@ -1,0 +1,141 @@
+<p class="lead">
+不只是 MNIST,任何一个深度学习项目都遵循<b>同一套训练模板</b>。
+本节把这个模板提炼成"模板代码",换个数据集就能用。
+</p>
+
+<h2>万能训练模板</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch
+import torch.nn as nn
+from torch.utils.data import DataLoader
+
+# === 1. 定义模型 ===
+class MyNet(nn.Module):
+    def __init__(self, in_dim, hidden, out_dim):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, out_dim),
+        )
+    def forward(self, x):
+        return self.net(x)
+
+# === 2. 准备数据(替换成你的数据集)===
+train_loader = DataLoader(your_train_set, batch_size=64, shuffle=True)
+val_loader   = DataLoader(your_val_set,   batch_size=128)
+
+# === 3. 模型 / 优化器 / 损失 ===
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+model = MyNet(in_dim=784, hidden=256, out_dim=10).to(device)
+opt = torch.optim.AdamW(model.parameters(), lr=1e-3, weight_decay=1e-4)
+crit = nn.CrossEntropyLoss()
+
+# === 4. 训练循环 ===
+best_val = 0
+patience = 5
+no_improve = 0
+
+for epoch in range(1, 51):
+    # ── 训练 ──
+    model.train()
+    train_loss = 0
+    for x, y in train_loader:
+        x, y = x.to(device), y.to(device)
+        opt.zero_grad()
+        loss = crit(model(x), y)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)   # 防爆
+        opt.step()
+        train_loss += loss.item()
+    train_loss /= len(train_loader)
+
+    # ── 验证 ──
+    model.eval()
+    correct = 0; total = 0
+    with torch.no_grad():
+        for x, y in val_loader:
+            x, y = x.to(device), y.to(device)
+            pred = model(x).argmax(dim=1)
+            correct += (pred == y).sum().item()
+            total += y.size(0)
+    val_acc = correct / total
+    print(f'ep {epoch:02d}  train_loss={train_loss:.4f}  val_acc={val_acc:.4f}')
+
+    # ── 早停 + 保存最佳模型 ──
+    if val_acc > best_val:
+        best_val = val_acc
+        no_improve = 0
+        torch.save(model.state_dict(), 'best.pt')
+    else:
+        no_improve += 1
+        if no_improve >= patience:
+            print(f'连续 {patience} 轮无改进,早停于 epoch {epoch}')
+            break
+
+# === 5. 推理 ===
+model.load_state_dict(torch.load('best.pt'))
+model.eval()
+with torch.no_grad():
+    pred = model(test_x.to(device))</pre>
+</div>
+
+<h2>关键模式拆解</h2>
+
+<table class="cmp-table">
+<tr><th>组件</th><th>作用</th><th>注意</th></tr>
+<tr><td><code>model.train()</code> / <code>model.eval()</code></td><td>切换 BN/Dropout 模式</td><td>每个 epoch 切换</td></tr>
+<tr><td><code>opt.zero_grad()</code></td><td>清梯度</td><td>每步必做</td></tr>
+<tr><td><code>loss.backward()</code></td><td>算梯度</td><td>对损失张量调用</td></tr>
+<tr><td><code>opt.step()</code></td><td>更新参数</td><td>backward 之后</td></tr>
+<tr><td><code>clip_grad_norm_</code></td><td>梯度裁剪</td><td>RNN/Transformer 必备</td></tr>
+<tr><td><code>torch.no_grad()</code></td><td>评估时省显存</td><td>评估/推理必加</td></tr>
+<tr><td><code>state_dict()</code></td><td>保存/加载权重</td><td>只存权重,不存结构</td></tr>
+</table>
+
+<h2>训练监控:三条曲线</h2>
+
+<ol>
+  <li><b>训练损失曲线</b>:应该平稳下降</li>
+  <li><b>验证损失曲线</b>:应跟着训练损失下降,差距不能太大</li>
+  <li><b>验证准确率/指标</b>:应稳步上升,达到峰值后可能开始过拟合</li>
+</ol>
+
+<div class="callout">
+  <span class="callout-title">三种典型病症</span>
+  <ul>
+    <li><b>都是直线 / 不下降</b> → 学习率太小、梯度消失、bug</li>
+    <li><b>训练 loss ↓ 验证 loss ↑</b> → 过拟合 → 加正则、Dropout、增强、early stop</li>
+    <li><b>都很高 / 不收敛</b> → 模型容量不够 / 特征不足 / 数据有问题</li>
+  </ul>
+</div>
+
+<h2>调参顺序</h2>
+
+<ol>
+  <li><b>能不能跑通</b>(loss 在合理范围,不报错)</li>
+  <li><b>能不能在 1 个 batch 上过拟合</b> → 验证模型 + 训练流程正确</li>
+  <li><b>整体 loss 下降合理</b> → 调学习率、batch size</li>
+  <li><b>过拟合?</b> → 加正则、增强、early stop</li>
+  <li><b>欠拟合?</b> → 加层 / 加宽 / 减正则</li>
+  <li><b>已经不错</b> → 调度器、warmup、混合精度、模型架构</li>
+</ol>
+
+<div class="callout c-info">
+  <span class="callout-title">1-batch 过拟合 ★</span>
+  教科书级调试技巧:用<b>仅 1 个 batch</b> 反复训练,看 loss 能不能降到几乎 0。
+  能 → 训练管道正确,只是数据/模型规模问题。不能 → 代码有 bug,赶紧查!
+</div>
+
+<h2>从这里去往何处</h2>
+
+<ul>
+  <li><b>分类任务</b>:Kaggle 入门、CIFAR-10、ImageNet</li>
+  <li><b>视觉</b>:目标检测(YOLO)、语义分割(U-Net)、图像生成(Diffusion)</li>
+  <li><b>NLP</b>:用 Hugging Face 的 transformers 库微调 BERT/GPT</li>
+  <li><b>强化学习</b>:OpenAI Gym + Stable-Baselines3</li>
+</ul>

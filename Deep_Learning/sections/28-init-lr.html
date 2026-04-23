@@ -1,0 +1,147 @@
+<p class="lead">
+模型架构定下来后,真正决定能不能训出好结果的是<b>三件事</b>:权重初始化、学习率调度、训练稳定性技巧。
+</p>
+
+<h2>权重初始化:为什么不能全设 0</h2>
+
+<p>
+如果所有权重都是 0,所有神经元的输出和梯度都相同 → <b>对称性破不开</b>,网络等同于只有一个神经元。
+设成全相同的常数也一样。所以必须<b>随机初始化</b>,但范围有讲究。
+</p>
+
+<h3>Xavier / Glorot 初始化(2010)</h3>
+
+<div class="math-scroll">
+$$W \sim \mathcal{N}\!\left(0,\ \frac{2}{n_{in}+n_{out}}\right)$$
+</div>
+
+<p>
+推导逻辑:让<b>每一层激活值的方差保持稳定</b>,既不爆炸也不消失。适合 sigmoid/tanh。
+</p>
+
+<h3>He / Kaiming 初始化(2015)</h3>
+
+<div class="math-scroll">
+$$W \sim \mathcal{N}\!\left(0,\ \frac{2}{n_{in}}\right)$$
+</div>
+
+<p>
+针对 <b>ReLU</b> 推导(ReLU 把一半激活变 0,所以方差比 Xavier 大一倍)。
+<b>用 ReLU 默认就用 He 初始化</b>。PyTorch 的 <code>nn.Linear</code> 默认就是 Kaiming 风格。
+</p>
+
+<h2>学习率调度:开局慢、中段快、收官细</h2>
+
+<p>固定学习率往往不是最优。常用调度:</p>
+
+<table class="cmp-table">
+<tr><th>策略</th><th>形状</th><th>适合</th></tr>
+<tr><td><b>Step decay</b></td><td>每 N 轮乘 0.1</td><td>简单,CV 经典</td></tr>
+<tr><td><b>Cosine annealing</b></td><td>余弦曲线下降</td><td>SOTA CV 训练</td></tr>
+<tr><td><b>Warmup + Cosine</b></td><td>前几千步线性升,然后余弦降</td><td><b>Transformer 标配</b></td></tr>
+<tr><td><b>OneCycle</b></td><td>升 → 降 → 谷底</td><td>fast.ai 推荐</td></tr>
+<tr><td><b>ReduceLROnPlateau</b></td><td>验证集不降时手动减</td><td>保险</td></tr>
+</table>
+
+<h3>为什么大模型一定要 warmup?</h3>
+
+<p>
+训练初期梯度方向不可靠。如果一开始就用大学习率,可能<b>把好的初始化破坏掉</b>。
+warmup 让前几千步"试探着走",到稳定后再上大学习率。
+对 LLM/Transformer 几乎是必须的。
+</p>
+
+<h2>梯度裁剪 — 防止训练崩溃</h2>
+
+<p>遇到梯度爆炸,简单粗暴的解决:<b>限制梯度的范数</b>,如果超了就缩放回去:</p>
+
+<div class="math-scroll">
+$$\mathbf{g} \leftarrow \mathbf{g} \cdot \min\!\left(1, \frac{\text{max\_norm}}{\|\mathbf{g}\|}\right)$$
+</div>
+
+<p>典型阈值 1.0。RNN 训练几乎必加。Transformer 也常加。</p>
+
+<h2>标签平滑(Label Smoothing)</h2>
+
+<p>
+分类任务中,one-hot 标签 $[0,0,1,0,0]$ 会迫使模型输出极端概率(99.9%),容易过拟合,
+也让模型对错误标签过于自信。<b>把标签变软</b>:
+</p>
+
+<div class="math-scroll">
+$$y' = (1-\epsilon) \cdot y + \frac{\epsilon}{K}, \quad \epsilon = 0.1$$
+</div>
+
+<p>典型 $\epsilon=0.1$,真实类的概率从 1.0 → 0.92,其他类从 0 → 0.02。模型预测会更校准。</p>
+
+<h2>Mixed Precision Training(FP16/BF16)</h2>
+
+<p>
+默认 32 位浮点很慢且费显存。<b>混合精度</b>:权重和算梯度用 FP16/BF16,关键累加用 FP32 ——
+内存减半、吞吐 1.5-2× 提升、几乎无精度损失。现代框架(PyTorch <code>torch.cuda.amp</code>、
+DeepSpeed、bitsandbytes)开箱可用。
+</p>
+
+<h2>批大小的影响</h2>
+
+<ul>
+  <li><b>小 batch (32-64)</b>:梯度噪声大,有正则化效果,泛化常更好</li>
+  <li><b>大 batch (1024+)</b>:吞吐高,但需要按比例放大学习率(linear scaling rule)</li>
+  <li><b>梯度累积</b>:显存不够想要大 batch?积累 N 步小 batch 的梯度再更新一次</li>
+</ul>
+
+<h2>PyTorch 代码</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch.nn as nn
+from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR
+
+# He 初始化(默认就是)
+nn.init.kaiming_normal_(layer.weight, nonlinearity='relu')
+
+# Warmup + Cosine 调度
+def lr_lambda(step):
+    if step < warmup_steps:
+        return step / warmup_steps
+    progress = (step - warmup_steps) / (total_steps - warmup_steps)
+    return 0.5 * (1 + math.cos(math.pi * progress))
+
+scheduler = LambdaLR(optimizer, lr_lambda)
+
+# 梯度裁剪
+torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+# 标签平滑(PyTorch 1.10+)
+loss = nn.CrossEntropyLoss(label_smoothing=0.1)
+
+# 混合精度
+from torch.cuda.amp import autocast, GradScaler
+scaler = GradScaler()
+with autocast():
+    out = model(x)
+    loss = criterion(out, y)
+scaler.scale(loss).backward()
+scaler.step(optimizer)
+scaler.update()</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['28-init-lr'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('全 0 初始化神经网络会怎样?',
+         ['正常训练', '所有神经元学一样,等同于一个神经元', '更快收敛', '不收敛'], 1) +
+    quiz('用 ReLU 应该用什么初始化?',
+         ['全 0', 'Xavier', 'He / Kaiming', '全 1'], 2) +
+    quiz('Transformer 训练为什么要 warmup?',
+         ['好看', '初期梯度不可靠,慢慢提高 lr 避免破坏初始化', '强制要求', '没用'], 1) +
+    quiz('梯度裁剪典型阈值?',
+         ['0.001', '1.0', '100', '不限制'], 1) +
+    quiz('Label Smoothing 把 one-hot 1 改成多少(ε=0.1, K=10)?',
+         ['1.0', '0.91', '0.5', '0.1'], 1, '$1 - 0.1 + 0.1/10 = 0.91$');
+  typeset(qs);
+};
+</script>

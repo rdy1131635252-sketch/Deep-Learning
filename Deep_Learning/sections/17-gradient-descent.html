@@ -1,0 +1,238 @@
+<p class="lead">
+训练神经网络 = 让损失函数 $L$ 变小。梯度下降是主流方法:<b>沿着山坡向下走</b>。
+几个关键超参 —— 学习率、mini-batch、动量 —— 决定了走得快不快、稳不稳。
+</p>
+
+<h2>核心更新规则</h2>
+
+<div class="math-scroll">
+$$\mathbf{w}_{new} = \mathbf{w}_{old} - \eta\,\nabla L(\mathbf{w}_{old})$$
+</div>
+
+<ul>
+  <li>$\nabla L$ = 损失对权重的梯度,指向<b>最陡上升方向</b></li>
+  <li>减号 → 反向走,即<b>下降方向</b></li>
+  <li>$\eta$(eta) = <b>学习率</b>(步长)</li>
+</ul>
+
+<div class="callout">
+  <span class="callout-title">类比</span>
+  想象你在浓雾笼罩的山顶,看不见远处。要下山,只能感受当前脚下的坡度,沿最陡下坡方向走一小步,
+  再感受、再走,直到四周变平坦 —— 那就是谷底。
+</div>
+
+<h2>1D 演示:$f(x) = x^2$</h2>
+
+<p>观察学习率太小(爬不动)、正好(平稳)、太大(震荡)、过大(发散):</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <div class="controls">
+      <label>$\eta$ = <input type="range" id="gd-lr" min="0.01" max="1.05" step="0.01" value="0.2" style="width:160px"> <span id="gd-lv" class="val">0.20</span></label>
+      <label>$x_0$ = <input type="number" id="gd-s" value="4" step="0.5" class="inp" style="width:60px"></label>
+      <button class="btn btn-primary" id="gd-start">▶ 开始</button>
+      <button class="btn" id="gd-reset">重置</button>
+    </div>
+    <div class="controls" style="margin-top: 8px; gap:6px">
+      <span style="font-size:12px; color:var(--ink-2)">预设:</span>
+      <button class="btn btn-sm" data-lr="0.05">η=0.05 太小</button>
+      <button class="btn btn-sm" data-lr="0.2">η=0.20 刚好</button>
+      <button class="btn btn-sm" data-lr="0.9">η=0.90 震荡</button>
+      <button class="btn btn-sm" data-lr="1.02">η=1.02 发散</button>
+    </div>
+    <canvas id="c-gd" width="560" height="280" style="display:block; margin: 10px auto 0; max-width:100%; background:var(--bg); border-radius:8px;"></canvas>
+    <div id="gd-info" class="mono" style="font-size:12px; color: var(--ink-2); margin-top:6px"></div>
+  </div>
+</div>
+
+<h2>2D 演示:椭圆等高线的震荡</h2>
+
+<p>损失 $f(x,y) = x^2 + 3y^2$,等高线是椭圆。因为 $y$ 方向曲率更大,普通 SGD 会在 $y$ 方向<b>来回震荡</b>,$x$ 方向慢慢爬:</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <div class="controls">
+      <label>$\eta$ = <input type="range" id="gd2-lr" min="0.01" max="0.35" step="0.01" value="0.1" style="width:150px"> <span id="gd2-lv" class="val">0.10</span></label>
+      <button class="btn btn-primary" id="gd2-start">▶ 开始</button>
+      <button class="btn" id="gd2-reset">重置</button>
+    </div>
+    <canvas id="c-gd2" width="420" height="420" style="display:block; margin: 10px auto 0; max-width:100%; background:var(--bg); border-radius:8px;"></canvas>
+    <div style="font-size:13px; color:var(--ink-2); margin-top:6px">
+      <b>提示</b>:这种窄谷形状会让 SGD 震荡得厉害,动量 (Momentum) 就是为了解决它(第 3.8 节)。
+    </div>
+  </div>
+</div>
+
+<h2>SGD · Batch · Mini-Batch</h2>
+
+<table class="cmp-table">
+<tr><th>方法</th><th>每次用几个样本</th><th>特点</th></tr>
+<tr><td><b>Batch GD</b></td><td>全部训练集</td><td>梯度精确但慢,内存爆</td></tr>
+<tr><td><b>SGD</b></td><td>1 个</td><td>快,震荡剧烈,噪声大</td></tr>
+<tr><td><b>Mini-Batch GD</b> ✓</td><td>32 / 64 / 128</td><td><b>现代标配</b>,平衡速度与稳定</td></tr>
+</table>
+
+<div class="callout c-info">
+  <span class="callout-title">mini-batch 噪声反而是好事</span>
+  小批量引入的"随机噪声"有助于<b>逃离局部最小值和鞍点</b>,反而使模型泛化更好。
+  这是 SGD 之所以在非凸优化中这么有效的原因之一。
+</div>
+
+<h2>高维优化的真相:鞍点比局部最小更可怕</h2>
+
+<p>
+在高维空间里(神经网络参数维度常常是百万级),<b>严格的局部最小值极其罕见</b> ——
+一个点要成为"最小",必须<b>每个方向都是上翘的</b>,这在 $d$ 维要满足 $d$ 个独立条件。
+</p>
+
+<p>
+<b>鞍点</b>(某些方向上翘,某些下翘)反而<b>比比皆是</b>。梯度在鞍点为零,
+朴素梯度下降会<b>卡住</b>。动量和 Adam 这些高级优化器,主要就是为了逃离鞍点。
+</p>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['17-gradient-descent'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('学习率过大会导致?',
+         ['收敛太快', '震荡或发散', '梯度变大', '不影响'], 1) +
+    quiz('在深度学习里,mini-batch size 通常是?',
+         ['1', '32 / 64 / 128', '10000', '全部数据'], 1) +
+    quiz('高维优化真正的"敌人"是?',
+         ['局部最小值', '鞍点', '最大值', '边界'], 1, '鞍点远比严格局部最小常见') +
+    quiz('梯度下降的更新方向是 $\\nabla L$ 的:',
+         ['正向', '反向', '垂直方向', '随机方向'], 1, '梯度指向最陡上升,我们要下降');
+  typeset(qs);
+
+  // 1D GD
+  let gdX = 4, gdH = [], gdT = null;
+  function drawGD() {
+    const c = $('#c-gd', root);
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#FBF8F3'; ctx.fillRect(0,0,W,H);
+    // f(x) = x^2
+    const SX = W / 12, MAX_Y = 20;
+    ctx.strokeStyle = '#8B7A65'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(0, H-20); ctx.lineTo(W, H-20); ctx.stroke();
+    // 曲线
+    ctx.strokeStyle = '#2D63A4'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    for (let px = 0; px < W; px++) {
+      const x = (px - W/2) / SX;
+      const y = x * x;
+      const py = H - 20 - y / MAX_Y * (H - 40);
+      if (px === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    // 历史点
+    gdH.forEach((x, i) => {
+      const px = W/2 + x * SX, py = H - 20 - (x*x) / MAX_Y * (H - 40);
+      const last = i === gdH.length - 1;
+      ctx.fillStyle = last ? '#B53838' : 'rgba(185,56,56,0.35)';
+      ctx.beginPath();
+      ctx.arc(px, py, last ? 7 : 3, 0, Math.PI*2);
+      ctx.fill();
+      if (last) {
+        ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.stroke();
+      }
+    });
+    $('#gd-info', root).textContent = `step ${gdH.length - 1}  ·  x = ${gdX.toFixed(4)}  ·  f(x) = ${(gdX*gdX).toFixed(4)}`;
+  }
+  function gdReset() {
+    if (gdT) { clearTimeout(gdT); gdT = null; }
+    gdX = +$('#gd-s', root).value;
+    gdH = [gdX];
+    drawGD();
+  }
+  function gdStart() {
+    gdReset();
+    const lr = +$('#gd-lr', root).value;
+    let step = 0;
+    (function loop() {
+      if (step >= 60 || Math.abs(gdX) < 0.001 || Math.abs(gdX) > 1000) return;
+      gdX = gdX - lr * 2 * gdX;
+      gdH.push(gdX);
+      drawGD();
+      step++;
+      gdT = setTimeout(loop, 90);
+    })();
+  }
+  $('#gd-lr', root).addEventListener('input', e => $('#gd-lv', root).textContent = (+e.target.value).toFixed(2));
+  $('#gd-start', root).addEventListener('click', gdStart);
+  $('#gd-reset', root).addEventListener('click', gdReset);
+  root.querySelectorAll('[data-lr]').forEach(b => b.addEventListener('click', () => {
+    $('#gd-lr', root).value = b.dataset.lr;
+    $('#gd-lv', root).textContent = (+b.dataset.lr).toFixed(2);
+    gdStart();
+  }));
+  gdReset();
+
+  // 2D GD
+  let g2X = 3, g2Y = 3, g2H = [], g2T = null;
+  function drawGD2() {
+    const c = $('#c-gd2', root);
+    const ctx = c.getContext('2d');
+    const W = c.width, H = c.height, CX = W/2, CY = H/2, S = W/8;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#FBF8F3'; ctx.fillRect(0,0,W,H);
+    // 等高线 x^2 + 3y^2 = c
+    for (let v = 1; v <= 40; v += 3) {
+      ctx.strokeStyle = `hsla(34, 60%, ${45 + v*0.6}%, 0.4)`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      for (let a = 0; a <= Math.PI * 2 + 0.1; a += 0.05) {
+        const r = Math.sqrt(v);
+        ctx.lineTo(CX + r * Math.cos(a) * S, CY - r * Math.sin(a) / Math.sqrt(3) * S);
+      }
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#8B7A65'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,CY); ctx.lineTo(W,CY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(CX,0); ctx.lineTo(CX,H); ctx.stroke();
+    // 路径
+    ctx.strokeStyle = '#B53838'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    g2H.forEach((p, i) => {
+      const px = CX + p[0]*S, py = CY - p[1]*S;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    g2H.forEach((p, i) => {
+      const last = i === g2H.length - 1;
+      ctx.fillStyle = last ? '#B53838' : 'rgba(185,56,56,0.4)';
+      ctx.beginPath();
+      ctx.arc(CX + p[0]*S, CY - p[1]*S, last ? 6 : 3, 0, Math.PI*2);
+      ctx.fill();
+    });
+  }
+  function g2Reset() {
+    if (g2T) { clearTimeout(g2T); g2T = null; }
+    g2X = 3; g2Y = 3;
+    g2H = [[3, 3]];
+    drawGD2();
+  }
+  function g2Start() {
+    g2Reset();
+    const lr = +$('#gd2-lr', root).value;
+    let step = 0;
+    (function loop() {
+      if (step >= 120 || (g2X*g2X + 3*g2Y*g2Y) < 0.001) return;
+      g2X = g2X - lr * 2 * g2X;
+      g2Y = g2Y - lr * 6 * g2Y;
+      g2H.push([g2X, g2Y]);
+      drawGD2();
+      step++;
+      g2T = setTimeout(loop, 50);
+    })();
+  }
+  $('#gd2-lr', root).addEventListener('input', e => $('#gd2-lv', root).textContent = (+e.target.value).toFixed(2));
+  $('#gd2-start', root).addEventListener('click', g2Start);
+  $('#gd2-reset', root).addEventListener('click', g2Reset);
+  g2Reset();
+};
+</script>

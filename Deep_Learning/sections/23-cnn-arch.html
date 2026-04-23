@@ -1,0 +1,578 @@
+<p class="lead">
+CNN 在过去 25 年走了一条"更深、更巧妙、更高效"的路。下面每个经典架构都用 SVG 画出来,看完你对深度学习视觉的演化就心中有数了。
+</p>
+
+<h2>池化层(Pooling)</h2>
+
+<p>
+池化 = 把一个小区域压缩成一个值。最大池化取最大,平均池化取平均。
+作用:<b>降低分辨率、减少参数、扩大感受野、提供平移不变性</b>。
+</p>
+
+<div class="math-scroll">
+$$\text{MaxPool}_{2\times2}\begin{bmatrix}1&3\\5&2\end{bmatrix} = 5, \quad \text{AvgPool}_{2\times2} = \frac{1+3+5+2}{4} = 2.75$$
+</div>
+
+<p>
+ResNet 之后,池化逐渐被 <b>stride=2 的卷积</b> 替代 —— 卷积是可学习的。
+最后一层常用<b>全局平均池化(GAP)</b>代替全连接层,大幅减少参数。
+</p>
+
+<hr>
+
+<h2>1. LeNet-5 (1998) — CNN 鼻祖</h2>
+
+<p>
+<b>Yann LeCun</b> 发明,用于手写数字识别。结构:<b>2 卷积 + 2 池化 + 3 全连接</b>,证明卷积是处理图像的正确工具。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 700 170" class="svg-root" style="max-width:100%;">
+      <g transform="translate(15,35)">
+        <rect x="0" y="0" width="50" height="60" fill="#fff" stroke="var(--ink)" stroke-width="1.2"/>
+        <text x="25" y="76" text-anchor="middle" class="label-sm">32×32×1</text>
+        <text x="25" y="90" text-anchor="middle" class="label-sm" fill="var(--ink-3)">输入</text>
+      </g>
+      <text x="85" y="65" text-anchor="middle" class="label-sm" fill="var(--orange)">5×5 conv</text>
+      <g transform="translate(110,30)">
+        <rect x="0" y="0" width="42" height="50" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <rect x="4" y="4" width="42" height="50" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <rect x="8" y="8" width="42" height="50" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <text x="25" y="76" text-anchor="middle" class="label-sm">28²×6</text>
+      </g>
+      <text x="185" y="65" text-anchor="middle" class="label-sm" fill="var(--purple)">pool</text>
+      <g transform="translate(205,40)">
+        <rect x="0" y="0" width="30" height="36" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="1.2"/>
+        <rect x="4" y="4" width="30" height="36" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="1.2"/>
+        <text x="17" y="66" text-anchor="middle" class="label-sm">14²×6</text>
+      </g>
+      <text x="265" y="65" text-anchor="middle" class="label-sm" fill="var(--orange)">5×5 conv</text>
+      <g transform="translate(290,42)">
+        <rect x="0" y="0" width="24" height="28" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <rect x="3" y="3" width="24" height="28" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <rect x="6" y="6" width="24" height="28" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <rect x="9" y="9" width="24" height="28" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.2"/>
+        <text x="16" y="62" text-anchor="middle" class="label-sm">10²×16</text>
+      </g>
+      <text x="350" y="65" text-anchor="middle" class="label-sm" fill="var(--purple)">pool</text>
+      <g transform="translate(370,48)">
+        <rect x="0" y="0" width="18" height="20" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="1.2"/>
+        <rect x="3" y="3" width="18" height="20" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="1.2"/>
+        <text x="11" y="52" text-anchor="middle" class="label-sm">5²×16</text>
+      </g>
+      <text x="420" y="65" text-anchor="middle" class="label-sm" fill="var(--green)">FC</text>
+      <g transform="translate(450,22)">
+        <rect x="0" y="0" width="6" height="80" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="3" y="94" text-anchor="middle" class="label-sm">120</text>
+      </g>
+      <g transform="translate(490,30)">
+        <rect x="0" y="0" width="6" height="60" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.2"/>
+        <text x="3" y="82" text-anchor="middle" class="label-sm">84</text>
+      </g>
+      <g transform="translate(530,52)">
+        <rect x="0" y="0" width="6" height="20" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="3" y="60" text-anchor="middle" class="label-sm">10</text>
+        <text x="3" y="74" text-anchor="middle" class="label-sm" fill="var(--orange)">softmax</text>
+      </g>
+      <g stroke="var(--ink-3)" stroke-width="1" fill="none">
+        <path d="M 66 65 L 103 65" marker-end="url(#arr42a)"/>
+        <path d="M 162 65 L 198 65" marker-end="url(#arr42a)"/>
+        <path d="M 244 65 L 282 65" marker-end="url(#arr42a)"/>
+        <path d="M 325 65 L 362 65" marker-end="url(#arr42a)"/>
+        <path d="M 395 65 L 440 65" marker-end="url(#arr42a)"/>
+        <path d="M 460 65 L 485 65" marker-end="url(#arr42a)"/>
+        <path d="M 500 65 L 525 65" marker-end="url(#arr42a)"/>
+      </g>
+      <defs><marker id="arr42a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.1</span> LeNet-5 · 约 6 万参数,已能在 MNIST 上达 99%。
+  </div>
+</div>
+
+<hr>
+
+<h2>2. AlexNet (2012) — 引爆深度学习</h2>
+
+<p>
+<b>Krizhevsky, Sutskever, Hinton</b> 的 AlexNet 在 ImageNet 上把 top-5 错误率从 26% 打到 16%,震动学界,开启深度学习时代。创新:<b>更深(8 层)+ ReLU + Dropout + GPU + 数据增强</b>。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 170" class="svg-root" style="max-width:100%;">
+      <g transform="translate(15,45)">
+        <rect x="0" y="0" width="38" height="50" fill="#fff" stroke="var(--ink)" stroke-width="1.2"/>
+        <text x="19" y="68" text-anchor="middle" class="label-sm">227²×3</text>
+      </g>
+      <text x="72" y="70" text-anchor="middle" class="label-sm" fill="var(--orange)">11×11 s=4</text>
+      <g transform="translate(105,55)">
+        <rect x="0" y="0" width="30" height="35" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <rect x="4" y="4" width="30" height="35" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <text x="17" y="56" text-anchor="middle" class="label-sm">55²×96</text>
+      </g>
+      <text x="170" y="70" text-anchor="middle" class="label-sm" fill="var(--purple)">pool</text>
+      <g transform="translate(192,60)">
+        <rect x="0" y="0" width="22" height="26" fill="var(--purple-tint)" stroke="var(--purple)"/>
+        <text x="11" y="46" text-anchor="middle" class="label-sm">27²×96</text>
+      </g>
+      <text x="240" y="70" text-anchor="middle" class="label-sm" fill="var(--orange)">5×5</text>
+      <g transform="translate(260,57)">
+        <rect x="0" y="0" width="20" height="30" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <rect x="3" y="3" width="20" height="30" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <text x="11" y="50" text-anchor="middle" class="label-sm">27²×256</text>
+      </g>
+      <text x="312" y="70" text-anchor="middle" class="label-sm" fill="var(--purple)">pool</text>
+      <g transform="translate(330,62)">
+        <rect x="0" y="0" width="16" height="22" fill="var(--purple-tint)" stroke="var(--purple)"/>
+        <text x="8" y="42" text-anchor="middle" class="label-sm">13²×256</text>
+      </g>
+      <text x="372" y="70" text-anchor="middle" class="label-sm" fill="var(--orange)">3×3×3</text>
+      <g transform="translate(400,58)">
+        <rect x="0" y="0" width="16" height="26" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <rect x="22" y="0" width="16" height="26" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <rect x="44" y="0" width="16" height="26" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <text x="30" y="46" text-anchor="middle" class="label-sm">13²×384...256</text>
+      </g>
+      <text x="478" y="70" text-anchor="middle" class="label-sm" fill="var(--purple)">pool</text>
+      <g transform="translate(495,65)">
+        <rect x="0" y="0" width="12" height="18" fill="var(--purple-tint)" stroke="var(--purple)"/>
+        <text x="6" y="36" text-anchor="middle" class="label-sm">6²×256</text>
+      </g>
+      <g transform="translate(540,35)">
+        <rect x="0" y="0" width="5" height="80" fill="var(--green-tint)" stroke="var(--green)"/>
+        <text x="2" y="94" text-anchor="middle" class="label-sm">4096</text>
+      </g>
+      <g transform="translate(585,35)">
+        <rect x="0" y="0" width="5" height="80" fill="var(--green-tint)" stroke="var(--green)"/>
+        <text x="2" y="94" text-anchor="middle" class="label-sm">4096</text>
+      </g>
+      <g transform="translate(625,55)">
+        <rect x="0" y="0" width="5" height="40" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="2" y="108" text-anchor="middle" class="label-sm">1000</text>
+        <text x="2" y="122" text-anchor="middle" class="label-sm" fill="var(--orange)">softmax</text>
+      </g>
+      <g stroke="var(--ink-3)" stroke-width="1" fill="none">
+        <path d="M 54 70 L 95 70" marker-end="url(#arrAL)"/>
+        <path d="M 145 70 L 182 70" marker-end="url(#arrAL)"/>
+        <path d="M 218 70 L 248 70" marker-end="url(#arrAL)"/>
+        <path d="M 290 70 L 320 70" marker-end="url(#arrAL)"/>
+        <path d="M 350 70 L 385 70" marker-end="url(#arrAL)"/>
+        <path d="M 466 70 L 487 70" marker-end="url(#arrAL)"/>
+        <path d="M 512 70 L 535 70" marker-end="url(#arrAL)"/>
+        <path d="M 550 70 L 580 70" marker-end="url(#arrAL)"/>
+        <path d="M 595 70 L 620 70" marker-end="url(#arrAL)"/>
+      </g>
+      <defs><marker id="arrAL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.2</span> AlexNet · 8 层,~6000 万参数,首个真正"深度"的 CNN。
+  </div>
+</div>
+
+<hr>
+
+<h2>3. VGG (2014) — 简洁极致</h2>
+
+<p>
+Oxford VGG 组:<b>只用 3×3 小卷积堆叠 + 2×2 池化,越深越好</b>。VGG-16 = 13 卷积 + 3 全连接。结构极简,参数巨大(约 1.38 亿),但泛化特征好,至今是迁移学习常用 backbone 之一。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 170" class="svg-root" style="max-width:100%;">
+      <g transform="translate(15,50)">
+        <rect x="0" y="0" width="36" height="48" fill="#fff" stroke="var(--ink)"/>
+        <text x="18" y="66" text-anchor="middle" class="label-sm">224²×3</text>
+      </g>
+      <g transform="translate(80,55)" fill="var(--blue-tint)" stroke="var(--blue)">
+        <rect x="0" y="0" width="10" height="40"/><rect x="14" y="0" width="10" height="40"/>
+        <text x="12" y="58" text-anchor="middle" class="label-sm" fill="var(--ink)">×2 conv3</text>
+        <text x="12" y="72" text-anchor="middle" class="label-sm" fill="var(--ink-3)">64</text>
+      </g>
+      <g transform="translate(130,62)" fill="var(--purple-tint)" stroke="var(--purple)">
+        <rect x="0" y="0" width="22" height="26"/>
+      </g>
+      <g transform="translate(175,55)" fill="var(--blue-tint)" stroke="var(--blue)">
+        <rect x="0" y="0" width="10" height="40"/><rect x="14" y="0" width="10" height="40"/>
+        <text x="12" y="58" text-anchor="middle" class="label-sm" fill="var(--ink)">×2 conv3</text>
+        <text x="12" y="72" text-anchor="middle" class="label-sm" fill="var(--ink-3)">128</text>
+      </g>
+      <g transform="translate(222,65)" fill="var(--purple-tint)" stroke="var(--purple)">
+        <rect x="0" y="0" width="18" height="20"/>
+      </g>
+      <g transform="translate(260,55)" fill="var(--blue-tint)" stroke="var(--blue)">
+        <rect x="0" y="0" width="10" height="36"/><rect x="14" y="0" width="10" height="36"/>
+        <rect x="28" y="0" width="10" height="36"/>
+        <text x="19" y="52" text-anchor="middle" class="label-sm" fill="var(--ink)">×3 conv3</text>
+        <text x="19" y="66" text-anchor="middle" class="label-sm" fill="var(--ink-3)">256</text>
+      </g>
+      <g transform="translate(318,68)" fill="var(--purple-tint)" stroke="var(--purple)">
+        <rect x="0" y="0" width="14" height="16"/>
+      </g>
+      <g transform="translate(352,55)" fill="var(--blue-tint)" stroke="var(--blue)">
+        <rect x="0" y="0" width="10" height="34"/><rect x="14" y="0" width="10" height="34"/>
+        <rect x="28" y="0" width="10" height="34"/>
+        <text x="19" y="50" text-anchor="middle" class="label-sm" fill="var(--ink)">×3 conv3</text>
+        <text x="19" y="64" text-anchor="middle" class="label-sm" fill="var(--ink-3)">512</text>
+      </g>
+      <g transform="translate(410,70)" fill="var(--purple-tint)" stroke="var(--purple)">
+        <rect x="0" y="0" width="12" height="12"/>
+      </g>
+      <g transform="translate(440,55)" fill="var(--blue-tint)" stroke="var(--blue)">
+        <rect x="0" y="0" width="10" height="34"/><rect x="14" y="0" width="10" height="34"/>
+        <rect x="28" y="0" width="10" height="34"/>
+        <text x="19" y="50" text-anchor="middle" class="label-sm" fill="var(--ink)">×3 conv3</text>
+        <text x="19" y="64" text-anchor="middle" class="label-sm" fill="var(--ink-3)">512</text>
+      </g>
+      <g transform="translate(498,71)" fill="var(--purple-tint)" stroke="var(--purple)">
+        <rect x="0" y="0" width="10" height="10"/>
+      </g>
+      <g transform="translate(535,40)" fill="var(--green-tint)" stroke="var(--green)">
+        <rect x="0" y="0" width="6" height="70"/>
+        <rect x="14" y="0" width="6" height="70"/>
+        <rect x="28" y="10" width="6" height="50"/>
+        <text x="17" y="86" text-anchor="middle" class="label-sm" fill="var(--ink)">FC ×3</text>
+        <text x="17" y="100" text-anchor="middle" class="label-sm" fill="var(--ink-3)">4096 · 4096 · 1000</text>
+      </g>
+      <g stroke="var(--ink-3)" stroke-width="1" fill="none">
+        <path d="M 54 74 L 78 74" marker-end="url(#arrVG)"/>
+        <path d="M 105 74 L 128 74" marker-end="url(#arrVG)"/>
+        <path d="M 155 74 L 173 74" marker-end="url(#arrVG)"/>
+        <path d="M 203 74 L 220 74" marker-end="url(#arrVG)"/>
+        <path d="M 243 74 L 258 74" marker-end="url(#arrVG)"/>
+        <path d="M 302 74 L 316 74" marker-end="url(#arrVG)"/>
+        <path d="M 335 74 L 350 74" marker-end="url(#arrVG)"/>
+        <path d="M 393 74 L 408 74" marker-end="url(#arrVG)"/>
+        <path d="M 424 74 L 438 74" marker-end="url(#arrVG)"/>
+        <path d="M 481 74 L 496 74" marker-end="url(#arrVG)"/>
+        <path d="M 510 74 L 533 74" marker-end="url(#arrVG)"/>
+      </g>
+      <defs><marker id="arrVG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.3</span> VGG-16 · 5 个"conv-pool"块 + 3 全连接。宽度随深度翻倍。
+  </div>
+</div>
+
+<hr>
+
+<h2>4. GoogLeNet / Inception (2014)</h2>
+
+<p>
+Google 团队作品,2014 ImageNet 冠军。核心是 <b>Inception 模块</b>:<b>同层并行多尺度卷积</b>(1×1, 3×3, 5×5)再拼接。<b>1×1 降维</b>是关键,极省算力。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 600 310" class="svg-root" style="max-width:100%">
+      <rect x="260" y="10" width="80" height="30" fill="#fff" stroke="var(--ink)"/>
+      <text x="300" y="29" text-anchor="middle" class="label">上一层</text>
+      <rect x="40" y="90" width="100" height="30" fill="var(--blue-tint)" stroke="var(--blue)"/>
+      <text x="90" y="108" text-anchor="middle" class="label">1×1 conv</text>
+      <rect x="175" y="90" width="100" height="30" fill="var(--yellow-tint)" stroke="var(--yellow)"/>
+      <text x="225" y="108" text-anchor="middle" class="label">1×1 reduce</text>
+      <rect x="175" y="140" width="100" height="30" fill="var(--blue-tint)" stroke="var(--blue)"/>
+      <text x="225" y="158" text-anchor="middle" class="label">3×3 conv</text>
+      <rect x="310" y="90" width="100" height="30" fill="var(--yellow-tint)" stroke="var(--yellow)"/>
+      <text x="360" y="108" text-anchor="middle" class="label">1×1 reduce</text>
+      <rect x="310" y="140" width="100" height="30" fill="var(--blue-tint)" stroke="var(--blue)"/>
+      <text x="360" y="158" text-anchor="middle" class="label">5×5 conv</text>
+      <rect x="445" y="90" width="100" height="30" fill="var(--purple-tint)" stroke="var(--purple)"/>
+      <text x="495" y="108" text-anchor="middle" class="label">3×3 maxpool</text>
+      <rect x="445" y="140" width="100" height="30" fill="var(--yellow-tint)" stroke="var(--yellow)"/>
+      <text x="495" y="158" text-anchor="middle" class="label">1×1 conv</text>
+      <rect x="230" y="220" width="140" height="35" fill="var(--green-tint)" stroke="var(--green)" stroke-width="2"/>
+      <text x="300" y="242" text-anchor="middle" class="label" font-weight="700">Concat 拼接</text>
+      <rect x="260" y="275" width="80" height="25" fill="#fff" stroke="var(--ink)"/>
+      <text x="300" y="292" text-anchor="middle" class="label">下一层</text>
+      <g stroke="var(--ink-3)" stroke-width="1" fill="none">
+        <path d="M 300 40 L 90 90" marker-end="url(#arrIC)"/>
+        <path d="M 300 40 L 225 90" marker-end="url(#arrIC)"/>
+        <path d="M 300 40 L 360 90" marker-end="url(#arrIC)"/>
+        <path d="M 300 40 L 495 90" marker-end="url(#arrIC)"/>
+        <path d="M 225 120 L 225 140" marker-end="url(#arrIC)"/>
+        <path d="M 360 120 L 360 140" marker-end="url(#arrIC)"/>
+        <path d="M 495 120 L 495 140" marker-end="url(#arrIC)"/>
+        <path d="M 90 120 L 260 220" marker-end="url(#arrIC)"/>
+        <path d="M 225 170 L 290 220" marker-end="url(#arrIC)"/>
+        <path d="M 360 170 L 320 220" marker-end="url(#arrIC)"/>
+        <path d="M 495 170 L 350 220" marker-end="url(#arrIC)"/>
+        <path d="M 300 255 L 300 275" marker-end="url(#arrIC)"/>
+      </g>
+      <defs><marker id="arrIC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.4</span> Inception 模块:同层多条路并行,最后拼接。
+  </div>
+</div>
+
+<hr>
+
+<h2>5. ResNet (2015) — 深度学习的奇点</h2>
+
+<p>
+Kaiming He 作品,2015 ImageNet 冠军。核心创新 —— <b>残差连接</b>:让某些层<b>直接把输入加到输出</b>,$y = F(x) + x$。梯度能"抄近道"回传,彻底解决了超深网络难训的问题。ResNet-152(152 层!)成功训出,准确率刷新纪录。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 600 260" class="svg-root" style="max-width:100%">
+      <rect x="50" y="115" width="70" height="30" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="2"/>
+      <text x="85" y="134" text-anchor="middle" class="label" font-weight="700">x</text>
+      <rect x="170" y="60" width="120" height="30" fill="#fff" stroke="var(--ink-3)"/>
+      <text x="230" y="79" text-anchor="middle" class="label">3×3 conv</text>
+      <rect x="170" y="100" width="120" height="30" fill="#fff" stroke="var(--ink-3)"/>
+      <text x="230" y="119" text-anchor="middle" class="label">BatchNorm</text>
+      <rect x="170" y="140" width="120" height="30" fill="var(--purple-tint)" stroke="var(--purple)"/>
+      <text x="230" y="159" text-anchor="middle" class="label">ReLU</text>
+      <rect x="170" y="180" width="120" height="30" fill="#fff" stroke="var(--ink-3)"/>
+      <text x="230" y="199" text-anchor="middle" class="label">3×3 conv</text>
+      <text x="310" y="135" fill="var(--ink-3)" class="label-sm" font-weight="700">F(x)</text>
+      <circle cx="370" cy="130" r="20" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+      <text x="370" y="137" text-anchor="middle" font-size="22" font-weight="700" fill="var(--orange)">+</text>
+      <rect x="420" y="115" width="100" height="30" fill="var(--green-tint)" stroke="var(--green)" stroke-width="2"/>
+      <text x="470" y="134" text-anchor="middle" class="label" font-weight="700">F(x) + x</text>
+      <g stroke="var(--ink-3)" stroke-width="1.3" fill="none">
+        <path d="M 120 130 L 165 75" marker-end="url(#arrRN)"/>
+        <path d="M 230 90 L 230 100" marker-end="url(#arrRN)"/>
+        <path d="M 230 130 L 230 140" marker-end="url(#arrRN)"/>
+        <path d="M 230 170 L 230 180" marker-end="url(#arrRN)"/>
+        <path d="M 290 195 L 350 130" marker-end="url(#arrRN)"/>
+      </g>
+      <path d="M 120 130 Q 200 30 340 115" stroke="var(--red)" stroke-width="2.5" fill="none" stroke-dasharray="6,4" marker-end="url(#arrRR)"/>
+      <text x="220" y="28" class="label" fill="var(--red)" font-weight="700">跳跃连接(恒等映射)</text>
+      <path d="M 390 130 L 415 130" stroke="var(--ink-3)" stroke-width="1.3" fill="none" marker-end="url(#arrRN)"/>
+      <defs>
+        <marker id="arrRN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker>
+        <marker id="arrRR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--red)"/></marker>
+      </defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.5</span> ResNet 基本单元。近十年最重要的结构创新之一,Transformer 也继承了这个设计。
+  </div>
+</div>
+
+<hr>
+
+<h2>6. MobileNet (2017) — 移动端利器</h2>
+
+<p>
+Google 为手机设计的 CNN。核心创新:<b>深度可分离卷积</b> —— 把标准卷积拆成两步:<b>深度卷积</b>(每通道独立 3×3,不混通道)+ <b>逐点卷积</b>(1×1 混通道)。算力从 $K^2 C_{in} C_{out}$ 降到 $K^2 C_{in} + C_{in} C_{out}$,通常省 $8\sim 9$ 倍。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 640 260" class="svg-root" style="max-width:100%">
+      <text x="100" y="22" class="label" font-weight="700" fill="var(--red)">标准 3×3 卷积</text>
+      <g transform="translate(20,40)">
+        <rect x="0" y="0" width="50" height="50" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <text x="25" y="68" text-anchor="middle" class="label-sm">C_in 通道</text>
+      </g>
+      <path d="M 75 65 L 110 65" stroke="var(--ink-3)" marker-end="url(#arrMN)"/>
+      <text x="92" y="58" text-anchor="middle" class="label-sm" fill="var(--red)">3×3×C_in×C_out</text>
+      <g transform="translate(115,40)">
+        <rect x="0" y="0" width="50" height="50" fill="var(--green-tint)" stroke="var(--green)"/>
+        <text x="25" y="68" text-anchor="middle" class="label-sm">C_out 通道</text>
+      </g>
+      <text x="200" y="68" class="label-sm" fill="var(--red)">算力:<tspan font-weight="700">K²·C_in·C_out</tspan></text>
+      <text x="175" y="130" class="label" font-weight="700" fill="var(--green)">深度可分离:分两步</text>
+      <g transform="translate(20,150)">
+        <rect x="0" y="0" width="50" height="50" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <text x="25" y="68" text-anchor="middle" class="label-sm">C_in</text>
+      </g>
+      <path d="M 75 175 L 140 175" stroke="var(--ink-3)" marker-end="url(#arrMN)"/>
+      <text x="107" y="167" text-anchor="middle" class="label-sm" fill="var(--orange)">深度卷积 3×3</text>
+      <g transform="translate(150,150)">
+        <rect x="0" y="0" width="50" height="50" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <text x="25" y="68" text-anchor="middle" class="label-sm">C_in(空间混)</text>
+      </g>
+      <path d="M 205 175 L 280 175" stroke="var(--ink-3)" marker-end="url(#arrMN)"/>
+      <text x="240" y="167" text-anchor="middle" class="label-sm" fill="var(--purple)">逐点 1×1(通道混)</text>
+      <g transform="translate(290,150)">
+        <rect x="0" y="0" width="50" height="50" fill="var(--green-tint)" stroke="var(--green)"/>
+        <text x="25" y="68" text-anchor="middle" class="label-sm">C_out</text>
+      </g>
+      <text x="380" y="178" class="label-sm" fill="var(--green)">算力:<tspan font-weight="700">K²·C_in + C_in·C_out</tspan></text>
+      <text x="380" y="200" class="label-sm">≈ 省 8~9 倍</text>
+      <defs><marker id="arrMN" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.6</span> MobileNet 核心:把"混空间"和"混通道"解耦。
+  </div>
+</div>
+
+<hr>
+
+<h2>7. EfficientNet (2019)</h2>
+
+<p>
+Google 用<b>神经架构搜索(NAS)</b>找到基础架构 EfficientNet-B0,然后按<b>复合缩放规则</b>同比放大深度、宽度、分辨率,得到 B1-B7 系列。每一个都在相同算力下准确率最高。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 640 200" class="svg-root" style="max-width:100%">
+      <text x="320" y="20" text-anchor="middle" class="label" font-weight="700">复合缩放 (Compound Scaling)</text>
+      <g transform="translate(60,60)">
+        <rect x="0" y="0" width="120" height="40" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.5"/>
+        <text x="60" y="24" text-anchor="middle" class="label">深度 d = α^φ</text>
+        <text x="60" y="58" text-anchor="middle" class="label-sm" fill="var(--ink-3)">更多层</text>
+      </g>
+      <g transform="translate(260,60)">
+        <rect x="0" y="0" width="120" height="40" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="60" y="24" text-anchor="middle" class="label">宽度 w = β^φ</text>
+        <text x="60" y="58" text-anchor="middle" class="label-sm" fill="var(--ink-3)">更多通道</text>
+      </g>
+      <g transform="translate(460,60)">
+        <rect x="0" y="0" width="120" height="40" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="1.5"/>
+        <text x="60" y="24" text-anchor="middle" class="label">分辨率 r = γ^φ</text>
+        <text x="60" y="58" text-anchor="middle" class="label-sm" fill="var(--ink-3)">更大输入</text>
+      </g>
+      <text x="320" y="135" text-anchor="middle" class="label" fill="var(--ink-2)">统一 φ 同比缩放,约束 α·β²·γ² ≈ 2(FLOPs 翻倍)</text>
+      <text x="320" y="168" text-anchor="middle" class="label" font-weight="700" fill="var(--orange)">B0 → B1 → ... → B7</text>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.7</span> EfficientNet · 平衡缩放 &gt; 单维缩放。
+  </div>
+</div>
+
+<hr>
+
+<h2>8. Vision Transformer / ViT (2020)</h2>
+
+<p>
+Google 把 Transformer 从 NLP 搬到视觉:<b>把图像切成 patches,每个 patch 当作一个"词",喂进标准 Transformer 编码器</b>。大数据预训练后准确率超越 CNN —— 新一代视觉基座。
+</p>
+
+<div class="figure">
+  <div class="figure-body">
+    <svg viewBox="0 0 720 260" class="svg-root" style="max-width:100%">
+      <g transform="translate(20, 40)">
+        <rect x="0" y="0" width="90" height="90" fill="#fff" stroke="var(--ink)" stroke-width="1.2"/>
+        <g stroke="var(--ink-3)" stroke-width="0.6" fill="none">
+          <line x1="30" y1="0" x2="30" y2="90"/><line x1="60" y1="0" x2="60" y2="90"/>
+          <line x1="0" y1="30" x2="90" y2="30"/><line x1="0" y1="60" x2="90" y2="60"/>
+        </g>
+        <rect x="0" y="0" width="30" height="30" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="1.5"/>
+        <rect x="30" y="30" width="30" height="30" fill="var(--blue-tint)" stroke="var(--blue)" stroke-width="1.5"/>
+        <rect x="60" y="60" width="30" height="30" fill="var(--green-tint)" stroke="var(--green)" stroke-width="1.5"/>
+        <text x="45" y="108" text-anchor="middle" class="label-sm">图片 → patches</text>
+      </g>
+      <text x="125" y="85" class="label" fill="var(--ink-3)">→</text>
+      <g transform="translate(145, 65)">
+        <rect x="0" y="0" width="140" height="35" fill="var(--yellow-tint)" stroke="var(--yellow)" stroke-width="1.5"/>
+        <text x="70" y="22" text-anchor="middle" class="label" font-weight="600">Linear + 位置编码</text>
+        <text x="70" y="55" text-anchor="middle" class="label-sm" fill="var(--ink-3)">每 patch 变成 token</text>
+      </g>
+      <g transform="translate(305, 55)">
+        <rect x="0" y="0" width="28" height="55" fill="var(--red-tint)" stroke="var(--red)"/>
+        <text x="14" y="32" text-anchor="middle" class="label-sm" font-weight="700">[CLS]</text>
+        <rect x="35" y="0" width="20" height="55" fill="var(--orange-tint)" stroke="var(--orange)"/>
+        <rect x="60" y="0" width="20" height="55" fill="var(--blue-tint)" stroke="var(--blue)"/>
+        <rect x="85" y="0" width="20" height="55" fill="var(--green-tint)" stroke="var(--green)"/>
+        <text x="115" y="32" class="label-sm" fill="var(--ink-3)">...</text>
+      </g>
+      <g transform="translate(445, 50)">
+        <rect x="0" y="0" width="140" height="70" fill="var(--purple-tint)" stroke="var(--purple)" stroke-width="1.5"/>
+        <text x="70" y="22" text-anchor="middle" class="label" font-weight="700">Transformer Encoder</text>
+        <text x="70" y="40" text-anchor="middle" class="label-sm">多头自注意力</text>
+        <text x="70" y="55" text-anchor="middle" class="label-sm">+ FFN + LayerNorm ×L</text>
+      </g>
+      <g transform="translate(615, 65)">
+        <rect x="0" y="0" width="80" height="40" fill="var(--orange-tint)" stroke="var(--orange)" stroke-width="2"/>
+        <text x="40" y="25" text-anchor="middle" class="label" font-weight="700">分类头</text>
+        <text x="40" y="58" text-anchor="middle" class="label-sm" fill="var(--ink-3)">[CLS] → softmax</text>
+      </g>
+      <g stroke="var(--ink-3)" fill="none" stroke-width="1.2">
+        <path d="M 287 82 L 305 82" marker-end="url(#arrVT2)"/>
+        <path d="M 425 82 L 443 82" marker-end="url(#arrVT2)"/>
+        <path d="M 587 82 L 613 82" marker-end="url(#arrVT2)"/>
+      </g>
+      <text x="360" y="210" text-anchor="middle" class="label" fill="var(--ink-2)">✨ ViT 启示:<b>局部性不是必要的</b>,数据够大时 Transformer 全局注意力比 CNN 表达力更强</text>
+      <defs><marker id="arrVT2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10" fill="var(--ink-3)"/></marker></defs>
+    </svg>
+  </div>
+  <div class="figure-caption">
+    <span class="num">图 4.2.8</span> ViT · 把 CV 彻底 Transformer 化。
+  </div>
+</div>
+
+<hr>
+
+<h2>总结 · 架构演进的脉络</h2>
+
+<table class="cmp-table">
+<tr><th>年份</th><th>模型</th><th>关键创新</th><th>深度</th></tr>
+<tr><td>1998</td><td>LeNet</td><td>卷积 + 池化 + 全连接</td><td>5</td></tr>
+<tr><td>2012</td><td>AlexNet</td><td>ReLU + Dropout + GPU</td><td>8</td></tr>
+<tr><td>2014</td><td>VGG</td><td>堆 3×3 小核,越深越好</td><td>16-19</td></tr>
+<tr><td>2014</td><td>GoogLeNet</td><td>Inception 并行尺度 + 1×1 降维</td><td>22</td></tr>
+<tr><td>2015</td><td>ResNet</td><td><b>残差连接</b>,深度革命</td><td>50-152</td></tr>
+<tr><td>2017</td><td>MobileNet</td><td>深度可分离卷积,移动端</td><td>可调</td></tr>
+<tr><td>2019</td><td>EfficientNet</td><td>NAS + 复合缩放</td><td>可调</td></tr>
+<tr><td>2020</td><td>ViT</td><td>Transformer 进军 CV</td><td>可调</td></tr>
+</table>
+
+<h2>PyTorch 迷你 CNN</h2>
+
+<div class="code" data-lang="Python">
+<pre>import torch.nn as nn
+
+class MiniCNN(nn.Module):
+    def __init__(self, num_classes=10):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),                         # 28→14
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(2),                         # 14→7
+        )
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(64*7*7, 128),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+            nn.Linear(128, num_classes),
+        )
+
+    def forward(self, x):
+        return self.classifier(self.features(x))
+
+model = MiniCNN()
+x = torch.randn(8, 1, 28, 28)   # (batch, channel, H, W)
+out = model(x)                    # (8, 10)</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['23-cnn-arch'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('ResNet 最核心的创新是?',
+         ['BatchNorm', '残差连接', 'Dropout', 'Adam'], 1) +
+    quiz('VGG 的设计哲学?',
+         ['各种尺寸卷积都用', '只用 3×3 堆叠', '只用全连接', '只用池化'], 1) +
+    quiz('Inception 模块的关键作用?',
+         ['减少层数', '同层并行多尺度 + 1×1 降维', '加跳跃连接', '换激活函数'], 1) +
+    quiz('MobileNet 省算力的核心技术?',
+         ['稀疏卷积', '深度可分离卷积', '量化', '剪枝'], 1) +
+    quiz('ViT 的最大意义?',
+         ['更快', 'Transformer 进军视觉,证明局部性非必需', '参数更少', '无需数据'], 1);
+  typeset(qs);
+};
+</script>

@@ -1,0 +1,239 @@
+<p class="lead">
+PCA 是机器学习最经典的<b>降维算法</b>。本质是对数据协方差矩阵做特征分解 ——
+它把"抽象的特征向量"变成了直接可视化的"数据的主方向"。
+</p>
+
+<h2>核心思想</h2>
+
+<div class="callout">
+  <span class="callout-title">直觉</span>
+  看一个斜着拉长的数据云:数据主要沿<b>长轴方向</b>变化,短轴方向变化很小。
+  PCA 就是要自动找出<b>方差最大的几个正交方向</b>,把数据投影到这些方向上,从而<b>保留主要信息降低维度</b>。
+</div>
+
+<h2>流程</h2>
+
+<ol>
+  <li><b>中心化</b>:减去均值,$\tilde{X} = X - \bar{X}$</li>
+  <li><b>协方差矩阵</b>:$C = \frac{1}{n-1}\tilde{X}^T\tilde{X}$(对称!)</li>
+  <li><b>特征分解</b>:$C = V\Lambda V^T$</li>
+  <li><b>排序取前 k</b>:按特征值从大到小,取前 $k$ 个特征向量作为主成分方向 $V_k$</li>
+  <li><b>投影</b>:$Y = \tilde{X} V_k$,$Y$ 是 $k$ 维的降维结果</li>
+</ol>
+
+<h2>为什么"方差最大 = 主特征向量"</h2>
+
+<p>
+这是 PCA 的核心洞察,用拉格朗日乘子法推导。我们要找 $\mathbf{w}$ 使投影方差 $\mathbf{w}^T C \mathbf{w}$ 最大,约束 $\|\mathbf{w}\|=1$:
+</p>
+
+<div class="math-scroll">
+$$\mathcal{L} = \mathbf{w}^T C \mathbf{w} - \lambda(\mathbf{w}^T\mathbf{w} - 1)$$
+</div>
+
+<p>对 $\mathbf{w}$ 求导并置零 $\Rightarrow 2C\mathbf{w} - 2\lambda\mathbf{w} = 0$,即:</p>
+
+<div class="math-scroll">
+$$C\mathbf{w} = \lambda\mathbf{w}$$
+</div>
+
+<p>
+<b>完美!</b> 方差最大的方向,<b>就是协方差矩阵 $C$ 最大特征值对应的特征向量</b>。
+方差值 = 特征值 $\lambda$。次大方差方向 = 第二大特征值对应的向量,依此类推。
+</p>
+
+<h2>动手试试</h2>
+
+<div class="figure">
+  <div class="figure-body">
+    <div class="controls">
+      <button class="btn btn-primary" id="pca-regen">🎲 重新生成数据</button>
+      <label>相关性:<input type="range" id="pca-cor" min="0" max="0.95" step="0.05" value="0.75" style="width:150px"> <span id="pca-cv" class="val">0.75</span></label>
+    </div>
+    <canvas id="c-pca" width="420" height="420" style="display:block; margin: 0 auto; max-width:100%; background:var(--bg); border-radius:8px;"></canvas>
+    <div id="pca-info" style="margin-top: 12px; font-size: 14px; color: var(--ink-2);"></div>
+  </div>
+  <div class="figure-caption">
+    <span class="num">互动 1.8</span> 红色长线 = PC1(方差最大方向),橙色短线 = PC2。拉高相关性,看 PC1 变得多主导。
+  </div>
+</div>
+
+<h2>解释方差比 · 怎么选 k</h2>
+
+<p>第 $i$ 个主成分<b>解释了多少方差</b>:</p>
+
+<div class="math-scroll">
+$$\text{explained variance ratio}_i = \frac{\lambda_i}{\sum_j \lambda_j}$$
+</div>
+
+<p>实际中常用<b>手肘法</b>:画出累积解释方差 vs k 的曲线,找"拐点"。或者直接取累积 90% 或 95% 时的 k。</p>
+
+<h2>与 SVD 的关系</h2>
+
+<div class="callout c-info">
+  <span class="callout-title">PCA = SVD on 中心化数据</span>
+  $\tilde{X} = U\Sigma V^T$,那么协方差 $\frac{1}{n-1}\tilde{X}^T\tilde{X} = \frac{1}{n-1}V\Sigma^2 V^T$。
+  所以 $V$ 的列向量就是 PCA 的主成分,$\sigma_i^2 / (n-1)$ 就是对应特征值。
+  <br><br>
+  实务中常直接对 $\tilde{X}$ 做 SVD,<b>比先算协方差再分解更稳定</b>。
+</div>
+
+<h2>应用</h2>
+
+<ul>
+  <li><b>数据可视化</b>:1000 维嵌入 → 2/3 维画出来看</li>
+  <li><b>去噪</b>:次要主成分往往是噪声,只保留主成分 = 去噪</li>
+  <li><b>加速训练</b>:特征降维后模型更小</li>
+  <li><b>Eigenfaces</b>(人脸识别的经典方法):每张脸 = 平均脸 + 一组"特征脸"的加权组合</li>
+</ul>
+
+<div class="callout c-warn">
+  <span class="callout-title">局限</span>
+  PCA 只能发现<b>线性结构</b>。如果数据分布是非线性流形(如螺旋、瑞士卷),PCA 会失败。
+  此时应该考虑 <b>t-SNE</b>、<b>UMAP</b>(降维可视化)、<b>Kernel PCA</b>(非线性版 PCA)、
+  或神经网络的<b>自编码器</b>。
+</div>
+
+<h2>sklearn 代码</h2>
+
+<div class="code" data-lang="Python">
+<pre>from sklearn.decomposition import PCA
+import numpy as np
+
+# X: (n_samples, n_features)
+X = np.random.randn(100, 50)
+
+pca = PCA(n_components=2)       # 降到 2 维
+Y = pca.fit_transform(X)         # (100, 2)
+
+# 每个主成分解释了多少方差
+print(pca.explained_variance_ratio_)
+# 比如 [0.31, 0.18] → 前两个主成分一起解释了 49% 的方差
+
+# 累积解释
+import matplotlib.pyplot as plt
+pca_full = PCA().fit(X)
+plt.plot(np.cumsum(pca_full.explained_variance_ratio_))
+# 看拐点选 k</pre>
+</div>
+
+<h2>小测验</h2>
+<div class="quiz-slot"></div>
+
+<script>
+window._interactionInits['08-pca'] = function(root) {
+  const qs = root.querySelector('.quiz-slot');
+  if (qs) qs.innerHTML =
+    quiz('PCA 的 PC1 是:',
+         ['数据均值', '方差最大的方向', '随机方向', '第一个特征'], 1) +
+    quiz('PCA 前要做的关键一步是:',
+         ['排序', '中心化(减均值)', '归一化到 [0,1]', '不必预处理'], 1) +
+    quiz('PCA 在什么数据上会失败?',
+         ['高斯分布', '线性相关', '非线性流形(如螺旋)', '稀疏数据'], 2, 'PCA 只找线性方向,非线性用 t-SNE/UMAP') +
+    quiz('PCA 与 SVD 的关系?',
+         ['无关', '$V$ 的列向量 = PCA 主成分', '对方阵相同', 'PCA 更复杂'], 1);
+  typeset(qs);
+
+  // 数据生成 + 画
+  let pts = [];
+  let seed = 1;
+  function mulberry32(a) { return function() { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  function regen() {
+    const rng = mulberry32(seed++);
+    pts = [];
+    for (let i = 0; i < 80; i++) {
+      // 生成两个独立高斯
+      let u = 0, v = 0;
+      while (u === 0) u = rng();
+      while (v === 0) v = rng();
+      const z1 = Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+      const z2 = Math.sqrt(-2 * Math.log(u)) * Math.sin(2 * Math.PI * v);
+      pts.push([z1, z2]);
+    }
+    draw();
+  }
+
+  function draw() {
+    const cor = +$('#pca-cor', root).value;
+    $('#pca-cv', root).textContent = cor.toFixed(2);
+
+    // 构造相关数据:对独立 (z1, z2) 施加一个协方差变换
+    const angle = Math.PI / 6;  // 旋转 30°
+    const cs = Math.cos(angle), sn = Math.sin(angle);
+    const data = pts.map(([x, y]) => {
+      // 先缩放让其相关性为 cor
+      const x2 = x;
+      const y2 = cor * x + Math.sqrt(1 - cor*cor) * y;  // 相关系数 = cor
+      // 旋转
+      return [x2 * cs - y2 * sn, x2 * sn + y2 * cs];
+    });
+
+    // 中心化
+    let mx = 0, my = 0;
+    data.forEach(p => { mx += p[0]; my += p[1]; });
+    mx /= data.length; my /= data.length;
+    data.forEach(p => { p[0] -= mx; p[1] -= my; });
+
+    // 协方差
+    let cxx = 0, cxy = 0, cyy = 0;
+    data.forEach(p => { cxx += p[0]**2; cxy += p[0]*p[1]; cyy += p[1]**2; });
+    cxx /= data.length; cxy /= data.length; cyy /= data.length;
+
+    // 特征值(2x2)
+    const tr = cxx + cyy, det = cxx*cyy - cxy*cxy;
+    const disc = Math.sqrt(Math.max(0, tr*tr - 4*det));
+    const l1 = (tr + disc)/2, l2 = (tr - disc)/2;
+    // 特征向量
+    let ev1, ev2;
+    if (Math.abs(cxy) > 1e-8) { ev1 = [cxy, l1 - cxx]; ev2 = [cxy, l2 - cxx]; }
+    else { ev1 = [1, 0]; ev2 = [0, 1]; }
+    const n1 = Math.sqrt(ev1[0]**2 + ev1[1]**2) || 1, n2 = Math.sqrt(ev2[0]**2 + ev2[1]**2) || 1;
+    ev1 = [ev1[0]/n1, ev1[1]/n1];
+    ev2 = [ev2[0]/n2, ev2[1]/n2];
+
+    const canv = $('#c-pca', root);
+    const ctx = canv.getContext('2d');
+    const W = canv.width, H = canv.height, CX = W/2, CY = H/2, S = 55;
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle = '#FBF8F3'; ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle = '#E2D8C4'; ctx.lineWidth = 0.5;
+    for (let x = CX % S; x < W; x += S) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+    for (let y = CY % S; y < H; y += S) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+    ctx.strokeStyle = '#8B7A65'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,CY); ctx.lineTo(W,CY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(CX,0); ctx.lineTo(CX,H); ctx.stroke();
+
+    // 画点
+    ctx.fillStyle = 'rgba(45, 99, 164, 0.55)';
+    data.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(CX + p[0]*S, CY - p[1]*S, 4, 0, Math.PI*2);
+      ctx.fill();
+    });
+    // PC1
+    const sl1 = Math.sqrt(Math.max(l1, 0)) * 3;
+    ctx.strokeStyle = '#B91C1C'; ctx.lineWidth = 3.5;
+    ctx.beginPath();
+    ctx.moveTo(CX - ev1[0]*sl1*S, CY + ev1[1]*sl1*S);
+    ctx.lineTo(CX + ev1[0]*sl1*S, CY - ev1[1]*sl1*S);
+    ctx.stroke();
+    // PC2
+    const sl2 = Math.sqrt(Math.max(l2, 0)) * 3;
+    ctx.strokeStyle = '#D97333'; ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(CX - ev2[0]*sl2*S, CY + ev2[1]*sl2*S);
+    ctx.lineTo(CX + ev2[0]*sl2*S, CY - ev2[1]*sl2*S);
+    ctx.stroke();
+
+    $('#pca-info', root).innerHTML =
+      `<b>PC1</b> 解释 <b style="color:#B91C1C">${(l1/(l1+l2)*100).toFixed(1)}%</b> 方差,` +
+      `<b>PC2</b> 解释 <b style="color:#D97333">${(l2/(l1+l2)*100).toFixed(1)}%</b>。` +
+      `相关性越大,数据越"像一条线",PC1 占比越高。`;
+  }
+
+  $('#pca-regen', root).addEventListener('click', regen);
+  $('#pca-cor', root).addEventListener('input', draw);
+  regen();
+};
+</script>
